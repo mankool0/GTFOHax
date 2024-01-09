@@ -1,0 +1,14 @@
+{
+    "name": "gtfohax",
+    "version-string": "0.1",
+    "dependencies": [
+        {
+            "name": "nlohmann-json",
+            "platform": "(windows & x64)"
+        },
+        {
+            "name": "freetype",
+            "platform": "(windows & x64)"
+        }
+    ]
+}
