@@ -42,6 +42,11 @@
 
 4. Grab the .dll in `x64\Release\`
 
+# Updating
+
+1. Build Il2CppInspector by following steps at [Il2CppInspector](https://github.com/djkaty/Il2CppInspector?tab=readme-ov-file#build-instructions) with these changes: https://github.com/djkaty/Il2CppInspector/issues/193
+
+2. Create a C++ scaffolding project and replace all files in appdata directory with newly generated ones.
 
 # Contributing
 Make a PR
