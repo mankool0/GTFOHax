@@ -6,7 +6,7 @@ namespace Hooks
     void InitHooks();
     void RemoveHooks();
     HRESULT __stdcall hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Flags);
-    bool hkDam_PlayerDamageBase_OnIncomingDamage(app::Dam_PlayerDamageBase* __this, float damage, float originalDamage, app::Nullable_1_UInt32_ source, MethodInfo* method);
+    bool hkDam_PlayerDamageBase_OnIncomingDamage(app::Dam_PlayerDamageBase* __this, float damage, float originalDamage, app::Agent* source, MethodInfo* method);
     void hkDam_PlayerDamageBase_ModifyInfection(app::Dam_PlayerDamageBase* __this, app::pInfection data, bool sync, bool updatePageMap, MethodInfo* method);
     void hkDam_PlayerDamageLocal_Hitreact(app::Dam_PlayerDamageLocal* __this, float damage, app::Vector3 direction, bool triggerCameraShake, bool triggerGenericDialog, bool pushPlayer, MethodInfo* method);
     app::Vector2 hkFPS_RecoilSystem_ApplyRecoil(app::FPS_RecoilSystem* __this, bool resetSimilarity, app::RecoilDataBlock* recoilData, MethodInfo* method);
@@ -40,6 +40,7 @@ namespace Hooks
     void hkLocalPlayerAgent_Update(app::LocalPlayerAgent* __this, MethodInfo* method);
     bool hkDam_EnemyDamageBase_ProcessReceivedDamage(app::Dam_EnemyDamageBase* __this, float damage, app::Agent* damageSource,
         app::Vector3 position, app::Vector3 direction, app::ES_HitreactType__Enum hitreact, bool tryForceHitreact, int32_t limbID,
-        float staggerDamageMulti, app::DamageNoiseLevel__Enum damageNoiseLevel, MethodInfo* method);
+        float staggerDamageMulti, app::DamageNoiseLevel__Enum damageNoiseLevel,
+        uint32_t gearCategoryId, MethodInfo* method);
 }
 

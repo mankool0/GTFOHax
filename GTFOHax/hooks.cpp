@@ -1,3 +1,5 @@
+#define USE_DETOURS
+
 #include "hooks.h"
 #include "menu.h"
 #include "hacks\player.h"
@@ -11,18 +13,27 @@
 #include "hacks/enemy.h"
 #include "math.h"
 #include "hacks/aimbot.h"
-#include "../kiero/minhook/include/MinHook.h"
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 bool hookFailed = false;
-typedef void (*hookFunc)(void);
-std::map<std::string, hookFunc> fpMap;
 
 std::string HookErrorToString(LONG code)
 {
     switch (code)
     {
+#ifdef USE_DETOURS
+    case ERROR_INVALID_BLOCK:
+        return "ERROR_INVALID_BLOCK";
+    case ERROR_INVALID_HANDLE:
+        return "ERROR_INVALID_HANDLE";
+    case ERROR_INVALID_OPERATION:
+        return "ERROR_INVALID_OPERATION";
+    case ERROR_NOT_ENOUGH_MEMORY:
+        return "ERROR_NOT_ENOUGH_MEMORY";
+    case NO_ERROR:
+        return "NO_ERROR";
+#else
     case MH_UNKNOWN:
         return "MH_UNKNOWN";
     case MH_OK:
@@ -51,11 +62,45 @@ std::string HookErrorToString(LONG code)
         return "MH_ERROR_MODULE_NOT_FOUND";
     case MH_ERROR_FUNCTION_NOT_FOUND:
         return "MH_ERROR_FUNCTION_NOT_FOUND";
+#endif // USE_DETOURS
     default:
         return std::to_string(code);
     }
 }
 
+#ifdef USE_DETOURS
+#include <detours/detours.h>
+
+std::vector<std::tuple<std::string, PVOID*, PVOID>> hooks;
+
+void HookAttach(PVOID* ppPointer, PVOID pDetour, std::string functionName)
+{
+    LONG code = DetourAttach(ppPointer, pDetour);
+    if (code != NO_ERROR)
+    {
+        std::string error = "DetourAttach Failed On: " + functionName + " With " + HookErrorToString(code);
+        il2cppi_log_write(error);
+        hookFailed = true;
+    }
+}
+
+void HookDetach(PVOID* ppPointer, PVOID pDetour, std::string functionName)
+{
+    LONG code = DetourDetach(ppPointer, pDetour);
+    if (code != NO_ERROR)
+    {
+        std::string error = "DetourDetach Failed On: " + functionName + "With " + HookErrorToString(code);
+        il2cppi_log_write(error);
+    }
+}
+
+#define HOOKATTACH(fun) (HookAttach(&(PVOID&)app::fun, Hooks:: ## hk ## fun, #fun))
+#define HOOKDETACH(fun) (HookDetach(&(PVOID&)app::fun, Hooks:: ## hk ## fun, #fun))
+
+#else
+#include "../kiero/minhook/include/MinHook.h"
+typedef void (*hookFunc)(void);
+std::map<std::string, hookFunc> fpMap;
 void HookAttach(PVOID ppPointer, PVOID pDetour, PVOID* fpOrig, std::string functionName)
 {
     MH_STATUS codeCreate, codeEnable = MH_UNKNOWN;
@@ -87,6 +132,8 @@ void HookDetach(PVOID ppPointer, std::string functionName)
                         HookAttach(app::fun, &Hooks:: ## hk ## fun, reinterpret_cast<PVOID*>(&fp ## fun), #fun); \
                         fpMap[#fun] = (fp ## fun)
 #define HOOKDETACH(fun) (HookDetach(app::fun, #fun))
+
+#endif // USE_DETOURS
 
 void Hooks::InitHooks()
 {
@@ -120,6 +167,14 @@ void Hooks::InitHooks()
         }
     }
 
+#ifdef USE_DETOURS
+    il2cppi_log_write("Using Detours for hooking");
+    DetourTransactionBegin();
+    DetourUpdateThread(GetCurrentThread());
+#else
+    il2cppi_log_write("Using MinHook for hooking");
+#endif // USE_DETOURS
+
     HOOKATTACH(Dam_PlayerDamageBase_OnIncomingDamage);
     HOOKATTACH(Dam_PlayerDamageBase_ModifyInfection);
     HOOKATTACH(Dam_PlayerDamageLocal_Hitreact);
@@ -152,6 +207,10 @@ void Hooks::InitHooks()
 
     HOOKATTACH(Dam_EnemyDamageBase_ProcessReceivedDamage);
 
+#ifdef USE_DETOURS
+    DetourTransactionCommit();
+#endif // USE_DETOURS
+
     if (hookFailed)
         il2cppi_log_write("Failed Initializing Hooks");
     else
@@ -165,7 +224,13 @@ void Hooks::RemoveHooks()
     ImGui_ImplWin32_Shutdown();
     ImGui::DestroyContext();
 
+#ifdef USE_DETOURS
+    DetourTransactionBegin();
+    DetourUpdateThread(GetCurrentThread());
+#else
     MH_DisableHook(MH_ALL_HOOKS);
+#endif // USE_DETOURS
+
     HOOKDETACH(Dam_PlayerDamageBase_OnIncomingDamage);
     HOOKDETACH(Dam_PlayerDamageBase_ModifyInfection);
     HOOKDETACH(Dam_PlayerDamageLocal_Hitreact);
@@ -198,15 +263,23 @@ void Hooks::RemoveHooks()
 
     HOOKDETACH(Dam_EnemyDamageBase_ProcessReceivedDamage);
 
+#ifdef USE_DETOURS
+    DetourTransactionCommit();
+#endif // USE_DETOURS
+
     il2cppi_log_write("Detached Hooks");
 }
 
-bool Hooks::hkDam_PlayerDamageBase_OnIncomingDamage(app::Dam_PlayerDamageBase* __this, float damage, float originalDamage, app::Nullable_1_UInt32_ source, MethodInfo* method)
+bool Hooks::hkDam_PlayerDamageBase_OnIncomingDamage(app::Dam_PlayerDamageBase* __this, float damage, float originalDamage, app::Agent* source, MethodInfo* method)
 {
     if (!Player::godmodeToggleKey.isToggled())
     {
+#ifdef USE_DETOURS
+        return app::Dam_PlayerDamageBase_OnIncomingDamage(__this, damage, originalDamage, source, method);
+#else
         static auto fpOFunc = reinterpret_cast<bool(*)(app::Dam_PlayerDamageBase*, float, float, app::Nullable_1_UInt32_, MethodInfo*)>(fpMap["Dam_PlayerDamageBase_OnIncomingDamage"]);
         return fpOFunc(__this, damage, originalDamage, source, method);
+#endif // USE_DETOURS
     }
 
     return false;
@@ -214,24 +287,36 @@ bool Hooks::hkDam_PlayerDamageBase_OnIncomingDamage(app::Dam_PlayerDamageBase* _
 
 void Hooks::hkDam_PlayerDamageBase_ModifyInfection(app::Dam_PlayerDamageBase* __this, app::pInfection data, bool sync, bool updatePageMap, MethodInfo* method)
 {
+#ifdef USE_DETOURS
+    app::Dam_PlayerDamageBase_ModifyInfection(__this, data, sync, updatePageMap, method);
+#else
     static auto fpOFunc = reinterpret_cast<void (*)(app::Dam_PlayerDamageBase*, app::pInfection, bool, bool, MethodInfo*)>(fpMap["Dam_PlayerDamageBase_ModifyInfection"]);
     fpOFunc(__this, data, sync, updatePageMap, method);
+#endif // USE_DETOURS
     if (Player::godmodeToggleKey.isToggled())
         __this->fields.Infection = 0.0f;
 }
 
 void Hooks::hkDam_PlayerDamageLocal_Hitreact(app::Dam_PlayerDamageLocal* __this, float damage, app::Vector3 direction, bool triggerCameraShake, bool triggerGenericDialog, bool pushPlayer, MethodInfo* method)
 {
+#ifdef USE_DETOURS
+    app::Dam_PlayerDamageLocal_Hitreact(__this, damage, direction, !Player::noShakeToggleKey.isToggled(), triggerGenericDialog, pushPlayer, method);
+#else
     static auto fpOFunc = reinterpret_cast<void (*)(app::Dam_PlayerDamageLocal*, float, app::Vector3, bool, bool, bool, MethodInfo*)>(fpMap["Dam_PlayerDamageLocal_Hitreact"]);
     fpOFunc(__this, damage, direction, !Player::noShakeToggleKey.isToggled(), triggerGenericDialog, pushPlayer, method);
+#endif // USE_DETOURS
 }
 
 app::Vector2 Hooks::hkFPS_RecoilSystem_ApplyRecoil(app::FPS_RecoilSystem* __this, bool resetSimilarity, app::RecoilDataBlock* recoilData, MethodInfo* method)
 {
     if (!Player::noRecoilToggleKey.isToggled())
     {
-        static auto fpOFunc = reinterpret_cast<app::Vector2 (*)(app::FPS_RecoilSystem*, bool, app::RecoilDataBlock*, MethodInfo*)>(fpMap["FPS_RecoilSystem_ApplyRecoil"]);
+#ifdef USE_DETOURS
+        return app::FPS_RecoilSystem_ApplyRecoil(__this, resetSimilarity, recoilData, method);
+#else
+        static auto fpOFunc = reinterpret_cast<app::Vector2(*)(app::FPS_RecoilSystem*, bool, app::RecoilDataBlock*, MethodInfo*)>(fpMap["FPS_RecoilSystem_ApplyRecoil"]);
         return fpOFunc(__this, resetSimilarity, recoilData, method);
+#endif // USE_DETOURS
     }
     //std::cout << "ApplyRecoilHook" << std::endl;
     __this->fields.m_concussionShakeIntensity = 0.0f;
@@ -309,18 +394,21 @@ app::Vector2 Hooks::hkFPS_RecoilSystem_ApplyRecoil(app::FPS_RecoilSystem* __this
 
 bool Hooks::hkWeapon_CastWeaponRay(app::Transform* muzzle, app::Weapon_WeaponHitData** weaponRayData, int32_t altRayCastMask, MethodInfo* method)
 {
-    static auto fpOFunc = reinterpret_cast<bool (*)(app::Transform*, app::Weapon_WeaponHitData**, int32_t, MethodInfo*)>(fpMap["Weapon_CastWeaponRay"]);
     if (Player::noSpreadToggleKey.isToggled())
     {
         // This seems to only work on foam launcher
         (*weaponRayData)->fields.randomSpread = 0.0f;
     }
+#ifdef USE_DETOURS
+    return app::Weapon_CastWeaponRay(muzzle, weaponRayData, altRayCastMask, method);
+#else
+    static auto fpOFunc = reinterpret_cast<bool (*)(app::Transform*, app::Weapon_WeaponHitData**, int32_t, MethodInfo*)>(fpMap["Weapon_CastWeaponRay"]);
     return fpOFunc(muzzle, weaponRayData, altRayCastMask, method);
+#endif // USE_DETOURS
 }
 
 bool Hooks::hkWeapon_CastWeaponRay_1(app::Transform* alignTransform, app::Weapon_WeaponHitData** weaponRayData, app::Vector3 originPos, int32_t altRayCastMask, MethodInfo* method)
 {
-    static auto fpOFunc = reinterpret_cast<bool (*)(app::Transform*, app::Weapon_WeaponHitData**, app::Vector3, int32_t, MethodInfo*)>(fpMap["Weapon_CastWeaponRay_1"]);
     if (Player::noSpreadToggleKey.isToggled())
     {
         // Works on rest of guns
@@ -355,72 +443,105 @@ bool Hooks::hkWeapon_CastWeaponRay_1(app::Transform* alignTransform, app::Weapon
         }
     }
 
-
+#ifdef USE_DETOURS
+    return app::Weapon_CastWeaponRay_1(alignTransform, weaponRayData, originPos, altRayCastMask, method);
+#else
+    static auto fpOFunc = reinterpret_cast<bool (*)(app::Transform*, app::Weapon_WeaponHitData**, app::Vector3, int32_t, MethodInfo*)>(fpMap["Weapon_CastWeaponRay_1"]);
     return fpOFunc(alignTransform, weaponRayData, originPos, altRayCastMask, method);
+#endif // USE_DETOURS
 }
 
 float Hooks::hkPlayerAmmoStorage_UpdateBulletsInPack(app::PlayerAmmoStorage* __this, app::AmmoType__Enum ammoType, int32_t bulletCount, MethodInfo* method)
 {
-    static auto fpOFunc = reinterpret_cast<float (*)(app::PlayerAmmoStorage*, app::AmmoType__Enum, int32_t, MethodInfo*)>(fpMap["PlayerAmmoStorage_UpdateBulletsInPack"]);
     // Works for glue gun, lock melter, mine deployer, resource pack, throw weapons
     if (Player::infiAmmoToggleKey.isToggled() && bulletCount < 0)
     {
         bulletCount = 0;
     }
-
+#ifdef USE_DETOURS
+    return app::PlayerAmmoStorage_UpdateBulletsInPack(__this, ammoType, bulletCount, method);
+#else
+    static auto fpOFunc = reinterpret_cast<float (*)(app::PlayerAmmoStorage*, app::AmmoType__Enum, int32_t, MethodInfo*)>(fpMap["PlayerAmmoStorage_UpdateBulletsInPack"]);
     return fpOFunc(__this, ammoType, bulletCount, method);
+#endif // USE_DETOURS
 }
 
 void Hooks::hkBulletWeapon_Fire(app::BulletWeapon* __this, bool resetRecoilSimilarity, MethodInfo* method)
 {
-    static auto fpOFunc = reinterpret_cast<void (*)(app::BulletWeapon*, bool, MethodInfo*)>(fpMap["BulletWeapon_Fire"]);
     // Works for normal bullet weapons
     if (Player::infiAmmoToggleKey.isToggled())
         __this->fields.m_clip++;
 
+#ifdef USE_DETOURS
+    return app::BulletWeapon_Fire(__this, resetRecoilSimilarity, method);
+#else
+    static auto fpOFunc = reinterpret_cast<void (*)(app::BulletWeapon*, bool, MethodInfo*)>(fpMap["BulletWeapon_Fire"]);
     return fpOFunc(__this, resetRecoilSimilarity, method);
+#endif // USE_DETOURS
 }
 
 void Hooks::hkShotgun_Fire(app::Shotgun* __this, bool resetRecoilSimilarity, MethodInfo* method)
 {
-    static auto fpOFunc = reinterpret_cast<void (*)(app::Shotgun*, bool, MethodInfo*)>(fpMap["Shotgun_Fire"]);
     // Works for shotguns
     if (Player::infiAmmoToggleKey.isToggled())
         __this->fields._.m_clip++;
 
+#ifdef USE_DETOURS
+    return app::Shotgun_Fire(__this, resetRecoilSimilarity, method);
+#else
+    static auto fpOFunc = reinterpret_cast<void (*)(app::Shotgun*, bool, MethodInfo*)>(fpMap["Shotgun_Fire"]);
     return fpOFunc(__this, resetRecoilSimilarity, method);
+#endif // USE_DETOURS
 }
 
 void Hooks::hkGlueGun_Updatepressure(app::GlueGun* __this, app::PlayerInventoryBase_pSimpleItemSyncData* syncData, MethodInfo* method)
 {
-    static auto fpOFunc = reinterpret_cast<void (*)(app::GlueGun*, app::PlayerInventoryBase_pSimpleItemSyncData*, MethodInfo*)>(fpMap["GlueGun_Updatepressure"]);
     if (Player::glueInstantToggleKey.isToggled())
         __this->fields.m_pressure = 1.0f;
 
+#ifdef USE_DETOURS
+    return app::GlueGun_Updatepressure(__this, syncData, method);
+#else
+    static auto fpOFunc = reinterpret_cast<void (*)(app::GlueGun*, app::PlayerInventoryBase_pSimpleItemSyncData*, MethodInfo*)>(fpMap["GlueGun_Updatepressure"]);
     return fpOFunc(__this, syncData, method);
+#endif // USE_DETOURS
 }
 
 void Hooks::hkGlueGun_UpdateRecharging(app::GlueGun* __this, app::PlayerInventoryBase_pSimpleItemSyncData* syncData, MethodInfo* method)
 {
-    static auto fpOFunc = reinterpret_cast<void (*)(app::GlueGun*, app::PlayerInventoryBase_pSimpleItemSyncData*, MethodInfo*)>(fpMap["GlueGun_UpdateRecharging"]);
     if (Player::glueInstantToggleKey.isToggled())
         __this->fields.m_rechargeTimer = 0.0f;
 
+#ifdef USE_DETOURS
+    return app::GlueGun_UpdateRecharging(__this, syncData, method);
+#else
+    static auto fpOFunc = reinterpret_cast<void (*)(app::GlueGun*, app::PlayerInventoryBase_pSimpleItemSyncData*, MethodInfo*)>(fpMap["GlueGun_UpdateRecharging"]);
     return fpOFunc(__this, syncData, method);
+#endif // USE_DETOURS
 }
 
 void Hooks::hkHackingMinigame_TimingGrid_StartGame(app::HackingMinigame_TimingGrid* __this, MethodInfo* method)
 {
+#ifdef USE_DETOURS
+    app::HackingMinigame_TimingGrid_StartGame(__this, method);
+#else
     static auto fpOFunc = reinterpret_cast<void (*)(app::HackingMinigame_TimingGrid*, MethodInfo*)>(fpMap["HackingMinigame_TimingGrid_StartGame"]);
     fpOFunc(__this, method);
+#endif // USE_DETOURS
+
     if (Player::instaHackToggleKey.isToggled())
         __this->fields.m_puzzleDone = true;
 }
 
 void Hooks::hkBulletWeaponArchetype_Update(app::BulletWeaponArchetype* __this, MethodInfo* method)
 {
+#ifdef USE_DETOURS
+    app::BulletWeaponArchetype_Update(__this, method);
+#else
     static auto fpOFunc = reinterpret_cast<void (*)(app::BulletWeaponArchetype*, MethodInfo*)>(fpMap["BulletWeaponArchetype_Update"]);
     fpOFunc(__this, method);
+#endif // USE_DETOURS
+
     if (!Player::fullAutoToggleKey.isToggled())
         return;
     bool pressed = app::ItemEquippable_get_FireButton(reinterpret_cast<app::ItemEquippable*>(__this->fields.m_weapon), NULL);
@@ -432,8 +553,13 @@ void Hooks::hkBulletWeaponArchetype_Update(app::BulletWeaponArchetype* __this, M
 
 void Hooks::hkArtifactPickup_Core_Setup(app::ArtifactPickup_Core* __this, app::ArtifactCategory__Enum category, MethodInfo* method)
 {
+#ifdef USE_DETOURS
+    app::ArtifactPickup_Core_Setup(__this, category, method);
+#else
     static auto fpOFunc = reinterpret_cast<void (*)(app::ArtifactPickup_Core*, app::ArtifactCategory__Enum, MethodInfo*)>(fpMap["ArtifactPickup_Core_Setup"]);
     fpOFunc(__this, category, method);
+#endif // USE_DETOURS
+
     G::worldArtifMtx.lock();
     ESP::worldArtifacts.push_back(ESP::WorldArtifactItem(__this));
     G::worldArtifMtx.unlock();
@@ -442,14 +568,23 @@ void Hooks::hkArtifactPickup_Core_Setup(app::ArtifactPickup_Core* __this, app::A
 
 void Hooks::hkCommodityPickup_Core_Setup(app::CommodityPickup_Core* __this, app::ItemDataBlock* data, MethodInfo* method)
 {
+#ifdef USE_DETOURS
+    return app::CommodityPickup_Core_Setup(__this, data, method);
+#else
     static auto fpOFunc = reinterpret_cast<void (*)(app::CommodityPickup_Core*, app::ItemDataBlock*, MethodInfo*)>(fpMap["CommodityPickup_Core_Setup"]);
     return fpOFunc(__this, data, method);
+#endif // USE_DETOURS
 }
 
 void Hooks::hkConsumablePickup_Core_Setup(app::ConsumablePickup_Core* __this, app::ItemDataBlock* data, MethodInfo* method)
 {
+#ifdef USE_DETOURS
+    app::ConsumablePickup_Core_Setup(__this, data, method);
+#else
     static auto fpOFunc = reinterpret_cast<void (*)(app::ConsumablePickup_Core*, app::ItemDataBlock*, MethodInfo*)>(fpMap["ConsumablePickup_Core_Setup"]);
     fpOFunc(__this, data, method);
+#endif // USE_DETOURS
+
     auto pickupItem = reinterpret_cast<app::LG_PickupItem_Sync*>(__this->fields.m_sync);
     G::worldItemsMtx.lock();
     ESP::worldItems.push_back(ESP::WorldPickupItem(pickupItem));
@@ -459,8 +594,13 @@ void Hooks::hkConsumablePickup_Core_Setup(app::ConsumablePickup_Core* __this, ap
 
 void Hooks::hkCarryItemPickup_Core_Setup(app::CarryItemPickup_Core* __this, app::ItemDataBlock* data, MethodInfo* method)
 {
+#ifdef USE_DETOURS
+    app::CarryItemPickup_Core_Setup(__this, data, method);
+#else
     static auto fpOFunc = reinterpret_cast<void (*)(app::CarryItemPickup_Core*, app::ItemDataBlock*, MethodInfo*)>(fpMap["CarryItemPickup_Core_Setup"]);
     fpOFunc(__this, data, method);
+#endif // USE_DETOURS
+
     G::worldCarryMtx.lock();
     ESP::worldCarryItems.push_back(ESP::WorldCarryItem(__this));
     G::worldCarryMtx.unlock();
@@ -469,8 +609,13 @@ void Hooks::hkCarryItemPickup_Core_Setup(app::CarryItemPickup_Core* __this, app:
 
 void Hooks::hkKeyItemPickup_Core_Setup(app::KeyItemPickup_Core* __this, app::ItemDataBlock* data, MethodInfo* method)
 {
+#ifdef USE_DETOURS
+    app::KeyItemPickup_Core_Setup(__this, data, method);
+#else
     static auto fpOFunc = reinterpret_cast<void (*)(app::KeyItemPickup_Core*, app::ItemDataBlock*, MethodInfo*)>(fpMap["KeyItemPickup_Core_Setup"]);
     fpOFunc(__this, data, method);
+#endif // USE_DETOURS
+
     G::worldKeyMtx.lock();
     ESP::worldKeys.push_back(ESP::WorldKeyItem(__this));
     G::worldKeyMtx.unlock();
@@ -479,8 +624,13 @@ void Hooks::hkKeyItemPickup_Core_Setup(app::KeyItemPickup_Core* __this, app::Ite
 
 void Hooks::hkGenericSmallPickupItem_Core_Setup(app::GenericSmallPickupItem_Core* __this, app::ItemDataBlock* data, MethodInfo* method)
 {
+#ifdef USE_DETOURS
+    app::GenericSmallPickupItem_Core_Setup(__this, data, method);
+#else
     static auto fpOFunc = reinterpret_cast<void (*)(app::GenericSmallPickupItem_Core*, app::ItemDataBlock*, MethodInfo*)>(fpMap["GenericSmallPickupItem_Core_Setup"]);
     fpOFunc(__this, data, method);
+#endif // USE_DETOURS
+
     G::worldGenericMtx.lock();
     ESP::worldGenerics.push_back(ESP::WorldGenericItem(__this));
     G::worldGenericMtx.unlock();
@@ -489,8 +639,13 @@ void Hooks::hkGenericSmallPickupItem_Core_Setup(app::GenericSmallPickupItem_Core
 
 void Hooks::hkResourcePackPickup_Setup(app::ResourcePackPickup* __this, app::ItemDataBlock* data, MethodInfo* method)
 {
+#ifdef USE_DETOURS
+    app::ResourcePackPickup_Setup(__this, data, method);
+#else
     static auto fpOFunc = reinterpret_cast<void (*)(app::ResourcePackPickup*, app::ItemDataBlock*, MethodInfo*)>(fpMap["ResourcePackPickup_Setup"]);
     fpOFunc(__this, data, method);
+#endif // USE_DETOURS
+
     G::worldResourcePackMtx.lock();
     ESP::worldResourcePacks.push_back(ESP::WorldResourceItem(__this));
     G::worldResourcePackMtx.unlock();
@@ -499,8 +654,13 @@ void Hooks::hkResourcePackPickup_Setup(app::ResourcePackPickup* __this, app::Ite
 
 void Hooks::hkLG_HSU_Setup(app::LG_HSU* __this, MethodInfo* method)
 {
+#ifdef USE_DETOURS
+    app::LG_HSU_Setup(__this, method);
+#else
     static auto fpOFunc = reinterpret_cast<void (*)(app::LG_HSU*, MethodInfo*)>(fpMap["LG_HSU_Setup"]);
     fpOFunc(__this, method);
+#endif // USE_DETOURS
+
     G::worldHSUMtx.lock();
     ESP::worldHSUItems.push_back(ESP::WorldHSUItem(__this));
     G::worldHSUMtx.unlock();
@@ -511,8 +671,12 @@ void Hooks::hkLG_HSU_Setup(app::LG_HSU* __this, MethodInfo* method)
 // For terminals
 void Hooks::hkLG_FunctionMarkerBuilder_SetupFunctionGO(app::LG_FunctionMarkerBuilder* __this, app::LG_LayerType__Enum layer, app::GameObject* GO, MethodInfo* method)
 {
+#ifdef USE_DETOURS
+    app::LG_FunctionMarkerBuilder_SetupFunctionGO(__this, layer, GO, method);
+#else
     static auto fpOFunc = reinterpret_cast<void (*)(app::LG_FunctionMarkerBuilder*, app::LG_LayerType__Enum, app::GameObject*, MethodInfo*)>(fpMap["LG_FunctionMarkerBuilder_SetupFunctionGO"]);
     fpOFunc(__this, layer, GO, method);
+#endif // USE_DETOURS
 
     auto terminalsSpawnedList = __this->fields.m_node->fields.m_zone->fields._TerminalsSpawnedInZone_k__BackingField;
     auto terminals = terminalsSpawnedList->fields._items->vector;
@@ -529,8 +693,12 @@ void Hooks::hkLG_FunctionMarkerBuilder_SetupFunctionGO(app::LG_FunctionMarkerBui
 
 void Hooks::hkGameStateManager_ChangeState(app::eGameStateName__Enum nextState, MethodInfo* method)
 {
+#ifdef USE_DETOURS
+    app::GameStateManager_ChangeState(nextState, method);
+#else
     static auto fpOFunc = reinterpret_cast<void (*)(app::eGameStateName__Enum, MethodInfo*)>(fpMap["GameStateManager_ChangeState"]);
     fpOFunc(nextState, method);
+#endif // USE_DETOURS
 
     if (nextState < app::eGameStateName__Enum::Generating || nextState > app::eGameStateName__Enum::InLevel)
     {
@@ -573,8 +741,12 @@ void Hooks::hkGameStateManager_ChangeState(app::eGameStateName__Enum nextState, 
 // Debug hook to get list of possible items
 void Hooks::hkItemDataBlock_OnPostSetup(app::ItemDataBlock* __this, MethodInfo* method)
 {
+#ifdef USE_DETOURS
+    app::ItemDataBlock_OnPostSetup(__this, method);
+#else
     static auto fpOFunc = reinterpret_cast<void (*)(app::ItemDataBlock*, MethodInfo*)>(fpMap["ItemDataBlock_OnPostSetup"]);
     fpOFunc(__this, method);
+#endif // USE_DETOURS
 
     auto betterString = il2cppi_to_string(__this->fields._publicName_k__BackingField);
     auto termName = il2cppi_to_string(__this->fields._terminalItemShortName_k__BackingField);
@@ -587,20 +759,32 @@ void Hooks::hkCursor_set_lockState(app::CursorLockMode__Enum value, MethodInfo* 
     if (G::showMenu)
         value = app::CursorLockMode__Enum::Confined;
 
+#ifdef USE_DETOURS
+    app::Cursor_set_lockState(value, method);
+#else
     static auto fpOFunc = reinterpret_cast<void (*)(app::CursorLockMode__Enum, MethodInfo*)>(fpMap["Cursor_set_lockState"]);
     fpOFunc(value, method);
+#endif // USE_DETOURS
 }
 
 void Hooks::hkCursor_set_visible(bool value, MethodInfo* method)
 {
+#ifdef USE_DETOURS
+    app::Cursor_set_visible(G::showMenu, method);
+#else
     static auto fpOFunc = reinterpret_cast<void (*)(bool, MethodInfo*)>(fpMap["Cursor_set_visible"]);
     fpOFunc(G::showMenu, method);
+#endif // USE_DETOURS
 }
 
 void Hooks::hkLocalPlayerAgent_Update(app::LocalPlayerAgent* __this, MethodInfo* method)
 {
+#ifdef USE_DETOURS
+    app::LocalPlayerAgent_Update(__this, method);
+#else
     static auto fpOFunc = reinterpret_cast<void (*)(app::LocalPlayerAgent*, MethodInfo*)>(fpMap["LocalPlayerAgent_Update"]);
     fpOFunc(__this, method);
+#endif // USE_DETOURS
 
     Enemy::_RefreshEnemyAgents();
     while (!G::callbacks.empty())
@@ -658,10 +842,15 @@ void Hooks::hkLocalPlayerAgent_Update(app::LocalPlayerAgent* __this, MethodInfo*
 
 bool Hooks::hkDam_EnemyDamageBase_ProcessReceivedDamage(app::Dam_EnemyDamageBase* __this, float damage, app::Agent* damageSource,
     app::Vector3 position, app::Vector3 direction, app::ES_HitreactType__Enum hitreact, bool tryForceHitreact, int32_t limbID,
-    float staggerDamageMulti, app::DamageNoiseLevel__Enum damageNoiseLevel, MethodInfo* method)
+    float staggerDamageMulti, app::DamageNoiseLevel__Enum damageNoiseLevel,
+    uint32_t gearCategoryId, MethodInfo* method)
 {
+#ifdef USE_DETOURS
+    bool retVal = app::Dam_EnemyDamageBase_ProcessReceivedDamage(__this, damage, damageSource, position, direction, hitreact, tryForceHitreact, limbID, staggerDamageMulti, damageNoiseLevel, gearCategoryId, method);
+#else
     static auto fpOFunc = reinterpret_cast<bool (*)(app::Dam_EnemyDamageBase*, float, app::Agent*, app::Vector3, app::Vector3, app::ES_HitreactType__Enum, bool, int32_t, float, app::DamageNoiseLevel__Enum, MethodInfo*)>(fpMap["Dam_EnemyDamageBase_ProcessReceivedDamage"]);
-    bool retVal = fpOFunc(__this, damage, damageSource, position, direction, hitreact, tryForceHitreact, limbID, staggerDamageMulti, damageNoiseLevel, method);
+    bool retVal = fpOFunc(__this, damage, damageSource, position, direction, hitreact, tryForceHitreact, limbID, staggerDamageMulti, damageNoiseLevel, gearCategoryId, method);
+#endif // USE_DETOURS
 
     if ((*app::SNet__TypeInfo)->static_fields->_IsMaster_k__BackingField)
     {
