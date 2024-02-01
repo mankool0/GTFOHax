@@ -14,6 +14,12 @@
 #include "math.h"
 #include "hacks/aimbot.h"
 
+#ifdef USE_DETOURS
+#include <detours/detours.h>
+#else
+#include "../kiero/minhook/include/MinHook.h"
+#endif // USE_DETOURS
+
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 bool hookFailed = false;
@@ -69,8 +75,6 @@ std::string HookErrorToString(LONG code)
 }
 
 #ifdef USE_DETOURS
-#include <detours/detours.h>
-
 std::vector<std::tuple<std::string, PVOID*, PVOID>> hooks;
 
 void HookAttach(PVOID* ppPointer, PVOID pDetour, std::string functionName)
@@ -98,7 +102,6 @@ void HookDetach(PVOID* ppPointer, PVOID pDetour, std::string functionName)
 #define HOOKDETACH(fun) (HookDetach(&(PVOID&)app::fun, Hooks:: ## hk ## fun, #fun))
 
 #else
-#include "../kiero/minhook/include/MinHook.h"
 typedef void (*hookFunc)(void);
 std::map<std::string, hookFunc> fpMap;
 void HookAttach(PVOID ppPointer, PVOID pDetour, PVOID* fpOrig, std::string functionName)
@@ -277,7 +280,7 @@ bool Hooks::hkDam_PlayerDamageBase_OnIncomingDamage(app::Dam_PlayerDamageBase* _
 #ifdef USE_DETOURS
         return app::Dam_PlayerDamageBase_OnIncomingDamage(__this, damage, originalDamage, source, method);
 #else
-        static auto fpOFunc = reinterpret_cast<bool(*)(app::Dam_PlayerDamageBase*, float, float, app::Nullable_1_UInt32_, MethodInfo*)>(fpMap["Dam_PlayerDamageBase_OnIncomingDamage"]);
+        static auto fpOFunc = reinterpret_cast<bool(*)(app::Dam_PlayerDamageBase*, float, float, app::Agent*, MethodInfo*)>(fpMap["Dam_PlayerDamageBase_OnIncomingDamage"]);
         return fpOFunc(__this, damage, originalDamage, source, method);
 #endif // USE_DETOURS
     }
@@ -848,7 +851,7 @@ bool Hooks::hkDam_EnemyDamageBase_ProcessReceivedDamage(app::Dam_EnemyDamageBase
 #ifdef USE_DETOURS
     bool retVal = app::Dam_EnemyDamageBase_ProcessReceivedDamage(__this, damage, damageSource, position, direction, hitreact, tryForceHitreact, limbID, staggerDamageMulti, damageNoiseLevel, gearCategoryId, method);
 #else
-    static auto fpOFunc = reinterpret_cast<bool (*)(app::Dam_EnemyDamageBase*, float, app::Agent*, app::Vector3, app::Vector3, app::ES_HitreactType__Enum, bool, int32_t, float, app::DamageNoiseLevel__Enum, MethodInfo*)>(fpMap["Dam_EnemyDamageBase_ProcessReceivedDamage"]);
+    static auto fpOFunc = reinterpret_cast<bool (*)(app::Dam_EnemyDamageBase*, float, app::Agent*, app::Vector3, app::Vector3, app::ES_HitreactType__Enum, bool, int32_t, float, app::DamageNoiseLevel__Enum, uint32_t, MethodInfo*)>(fpMap["Dam_EnemyDamageBase_ProcessReceivedDamage"]);
     bool retVal = fpOFunc(__this, damage, damageSource, position, direction, hitreact, tryForceHitreact, limbID, staggerDamageMulti, damageNoiseLevel, gearCategoryId, method);
 #endif // USE_DETOURS
 
