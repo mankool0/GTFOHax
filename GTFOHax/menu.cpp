@@ -400,8 +400,12 @@ void RenderPickupItem(app::LG_PickupItem_Sync* pickupItem, app::pPickupItemState
 
     if (itemCode.empty())
         itemCode = itemName;
-    auto espItemSetting = ESP::espItemsMap[itemCode];
-    if (!espItemSetting)
+
+    if (itemCode == "BACKUP_DATA_CUBE")
+        itemCode = "DATA_CUBE";
+
+    auto it = ESP::espItemsMap.find(itemCode);
+    if (it == ESP::espItemsMap.end())
     {
         if (std::find(nonexistantItems.begin(), nonexistantItems.end(), itemName) == nonexistantItems.end())
         {
@@ -415,6 +419,8 @@ void RenderPickupItem(app::LG_PickupItem_Sync* pickupItem, app::pPickupItemState
         RenderESPText(w2sPos, color, outlineColor, espStr);
         return;
     }
+
+    auto espItemSetting = it->second;
 
     if (!espItemSetting->enabled || distance > espItemSetting->renderDistance)
         return;
