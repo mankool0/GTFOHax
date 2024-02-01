@@ -409,6 +409,10 @@ void RenderPickupItem(app::LG_PickupItem_Sync* pickupItem, app::pPickupItemState
             std::string error = "ERROR: " + itemName + " does not exist in espItemsMap. Please report this.";
             il2cppi_log_write(error);
         }
+        std::string espStr = itemName + " [" + std::to_string(llround(distance)) + "m]";
+        ImU32 color = ImGui::GetColorU32(ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
+        ImU32 outlineColor = ImGui::GetColorU32(ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+        RenderESPText(w2sPos, color, outlineColor, espStr);
         return;
     }
 
