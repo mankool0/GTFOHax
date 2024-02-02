@@ -1,4 +1,4 @@
-# Note: This was tested on a fresh Win 10 x64 install using Visual Studio 2022 Community.
+# Note: This was tested on a fresh Win 10 x64 & Win 11 x64 install using Visual Studio 2022 Community.
 
 # Build Instructions
 
@@ -47,6 +47,8 @@
 1. Build Il2CppInspector by following steps at [Il2CppInspector](https://github.com/djkaty/Il2CppInspector?tab=readme-ov-file#build-instructions) with these changes: https://github.com/djkaty/Il2CppInspector/issues/193
 
 2. Create a C++ scaffolding project and replace all files in appdata directory with newly generated ones.
+
+3. Fix any errors that might show up if game functions changed.
 
 # Contributing
 Make a PR
