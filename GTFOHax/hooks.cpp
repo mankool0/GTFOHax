@@ -152,8 +152,12 @@ void Hooks::InitHooks()
         auto block = allBlocks->vector[i];
         auto blockName = il2cppi_to_string(block->fields._._name_k__BackingField);
         auto blockPersID = block->fields._._persistentID_k__BackingField;
-        if (blockName == "Striker_Boss" || blockName == "Cocoon" || blockName == "Squidward" || blockName == "SquidBoss_Big")
+        if (blockName == "Striker_Boss" || blockName == "Cocoon"
+            || blockName == "Squidward" || blockName == "SquidBoss_Big" 
+            || blockName == "SquidBoss Big Complex" || blockName == "SquidBoss VS")
+        {
             continue; //Ignore enemies that can't be spawned
+        }
         std::replace(blockName.begin(), blockName.end(), '_', ' ');
         Enemy::enemyNames.push_back(blockName);
         Enemy::enemyIDs.insert(std::pair<std::string, int>(blockName, blockPersID));       
