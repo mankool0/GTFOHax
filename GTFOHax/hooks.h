@@ -30,7 +30,7 @@ namespace Hooks
     void hkResourcePackPickup_Setup(app::ResourcePackPickup* __this, app::ItemDataBlock* data, MethodInfo* method);
     void hkLG_HSU_Setup(app::LG_HSU* __this, MethodInfo* method);
 
-    void hkLG_FunctionMarkerBuilder_SetupFunctionGO(app::LG_FunctionMarkerBuilder* __this, app::LG_LayerType__Enum layer, app::GameObject* GO, MethodInfo* method);
+    void hkLG_ComputerTerminal_Setup(app::LG_ComputerTerminal* __this, app::TerminalStartStateData* startStateData, app::TerminalPlacementData* terminalPlacementData, MethodInfo* method);
 
     void hkGameStateManager_ChangeState(app::eGameStateName__Enum nextState, MethodInfo* method);
 

@@ -203,7 +203,7 @@ void Hooks::InitHooks()
     HOOKATTACH(GenericSmallPickupItem_Core_Setup);
     HOOKATTACH(ResourcePackPickup_Setup);
     HOOKATTACH(LG_HSU_Setup);
-    HOOKATTACH(LG_FunctionMarkerBuilder_SetupFunctionGO);
+    HOOKATTACH(LG_ComputerTerminal_Setup);
 
     HOOKATTACH(GameStateManager_ChangeState);
 
@@ -259,7 +259,7 @@ void Hooks::RemoveHooks()
     HOOKDETACH(GenericSmallPickupItem_Core_Setup);
     HOOKDETACH(ResourcePackPickup_Setup);
     HOOKDETACH(LG_HSU_Setup);
-    HOOKDETACH(LG_FunctionMarkerBuilder_SetupFunctionGO);
+    HOOKDETACH(LG_ComputerTerminal_Setup);
 
     HOOKDETACH(GameStateManager_ChangeState);
 
@@ -676,26 +676,18 @@ void Hooks::hkLG_HSU_Setup(app::LG_HSU* __this, MethodInfo* method)
 
 
 // For terminals
-void Hooks::hkLG_FunctionMarkerBuilder_SetupFunctionGO(app::LG_FunctionMarkerBuilder* __this, app::LG_LayerType__Enum layer, app::GameObject* GO, MethodInfo* method)
+void Hooks::hkLG_ComputerTerminal_Setup(app::LG_ComputerTerminal* __this, app::TerminalStartStateData* startStateData, app::TerminalPlacementData* terminalPlacementData, MethodInfo* method)
 {
 #ifdef USE_DETOURS
-    app::LG_FunctionMarkerBuilder_SetupFunctionGO(__this, layer, GO, method);
+    app::LG_ComputerTerminal_Setup(__this, startStateData, terminalPlacementData, method);
 #else
-    static auto fpOFunc = reinterpret_cast<void (*)(app::LG_FunctionMarkerBuilder*, app::LG_LayerType__Enum, app::GameObject*, MethodInfo*)>(fpMap["LG_FunctionMarkerBuilder_SetupFunctionGO"]);
-    fpOFunc(__this, layer, GO, method);
+    static auto fpOFunc = reinterpret_cast<void (*)(app::LG_ComputerTerminal*, app::TerminalStartStateData*, app::TerminalPlacementData*, MethodInfo*)>(fpMap["LG_ComputerTerminal_Setup"]);
+    fpOFunc(__this, startStateData, terminalPlacementData, method);
 #endif // USE_DETOURS
 
-    auto terminalsSpawnedList = __this->fields.m_node->fields.m_zone->fields._TerminalsSpawnedInZone_k__BackingField;
-    auto terminals = terminalsSpawnedList->fields._items->vector;
-    
     G::worldTerminalsMtx.lock();
-    
-    for (int i = 0; i < terminalsSpawnedList->fields._size; i++)
-        ESP::worldTerminals.push_back(ESP::WorldTerminalItem(terminals[i]));
-    
+    ESP::worldTerminals.push_back(ESP::WorldTerminalItem(__this));
     G::worldTerminalsMtx.unlock();
-
-    return;
 }
 
 void Hooks::hkGameStateManager_ChangeState(app::eGameStateName__Enum nextState, MethodInfo* method)
