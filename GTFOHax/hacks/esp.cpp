@@ -17,6 +17,7 @@ namespace ESP
     std::vector<WorldResourceItem> worldResourcePacks;
     std::vector<WorldHSUItem> worldHSUItems;
 
+    std::vector<WorldBulkheadDC> worldBulkheadDCs;
     std::vector<WorldTerminalItem> worldTerminals;
 
     void Init()

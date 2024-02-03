@@ -38,6 +38,7 @@ namespace G {
     extern std::mutex worldResourcePackMtx;
     extern std::mutex worldTerminalsMtx;
     extern std::mutex worldHSUMtx;
+    extern std::mutex worldBulkheadMtx;
     extern std::mutex enemyVecMtx;
     extern std::mutex imguiMtx;
     extern std::mutex enemyAimMtx;

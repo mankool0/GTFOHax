@@ -203,6 +203,7 @@ void Hooks::InitHooks()
     HOOKATTACH(GenericSmallPickupItem_Core_Setup);
     HOOKATTACH(ResourcePackPickup_Setup);
     HOOKATTACH(LG_HSU_Setup);
+    HOOKATTACH(LG_BulkheadDoorController_Core_Setup);
     HOOKATTACH(LG_ComputerTerminal_Setup);
 
     HOOKATTACH(GameStateManager_ChangeState);
@@ -259,6 +260,7 @@ void Hooks::RemoveHooks()
     HOOKDETACH(GenericSmallPickupItem_Core_Setup);
     HOOKDETACH(ResourcePackPickup_Setup);
     HOOKDETACH(LG_HSU_Setup);
+    HOOKDETACH(LG_BulkheadDoorController_Core_Setup);
     HOOKDETACH(LG_ComputerTerminal_Setup);
 
     HOOKDETACH(GameStateManager_ChangeState);
@@ -674,6 +676,19 @@ void Hooks::hkLG_HSU_Setup(app::LG_HSU* __this, MethodInfo* method)
     return;
 }
 
+void Hooks::hkLG_BulkheadDoorController_Core_Setup(app::LG_BulkheadDoorController_Core* __this, MethodInfo* method)
+{
+#ifdef USE_DETOURS
+    app::LG_BulkheadDoorController_Core_Setup(__this, method);
+#else
+    static auto fpOFunc = reinterpret_cast<void (*)(app::LG_BulkheadDoorController_Core*, MethodInfo*)>(fpMap["LG_BulkheadDoorController_Core_Setup"]);
+    fpOFunc(__this, method);
+#endif // USE_DETOURS
+
+    G::worldBulkheadMtx.lock();
+    ESP::worldBulkheadDCs.push_back(ESP::WorldBulkheadDC(__this));
+    G::worldBulkheadMtx.unlock();
+}
 
 // For terminals
 void Hooks::hkLG_ComputerTerminal_Setup(app::LG_ComputerTerminal* __this, app::TerminalStartStateData* startStateData, app::TerminalPlacementData* terminalPlacementData, MethodInfo* method)
@@ -734,6 +749,10 @@ void Hooks::hkGameStateManager_ChangeState(app::eGameStateName__Enum nextState, 
         G::worldHSUMtx.lock();
         ESP::worldHSUItems.clear();
         G::worldHSUMtx.unlock();
+
+        G::worldBulkheadMtx.lock();
+        ESP::worldBulkheadDCs.clear();
+        G::worldBulkheadMtx.unlock();
     }
 }
 
@@ -835,6 +854,11 @@ void Hooks::hkLocalPlayerAgent_Update(app::LocalPlayerAgent* __this, MethodInfo*
     for (ESP::WorldHSUItem& i : ESP::worldHSUItems) i.update();
     std::sort(ESP::worldHSUItems.begin(), ESP::worldHSUItems.end(), std::greater<ESP::WorldHSUItem>());
     G::worldHSUMtx.unlock();
+
+    G::worldBulkheadMtx.lock();
+    for (ESP::WorldBulkheadDC& i : ESP::worldBulkheadDCs) i.update();
+    std::sort(ESP::worldBulkheadDCs.begin(), ESP::worldBulkheadDCs.end(), std::greater<ESP::WorldBulkheadDC>());
+    G::worldBulkheadMtx.unlock();
 
     Aimbot::RunAimbot();
 }

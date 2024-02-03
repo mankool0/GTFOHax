@@ -586,6 +586,34 @@ void RenderHSUs()
     G::worldHSUMtx.unlock();
 }
 
+void RenderBulkheads()
+{
+    auto espBulkheadSetting = ESP::espItemsMap["Bulkhead"];
+    if (!espBulkheadSetting->enabled)
+        return;
+
+    G::worldBulkheadMtx.lock();
+    for (std::vector<ESP::WorldBulkheadDC>::iterator it = ESP::worldBulkheadDCs.begin(); it != ESP::worldBulkheadDCs.end(); ++it)
+    {
+        if (!G::mainCamera || ((*it).position.x == 0.0f && (*it).position.y == 0.0f && (*it).position.z == 0.0f))
+            continue;
+
+        if ((*it).distance > espBulkheadSetting->renderDistance)
+            continue;
+
+        ImVec2 w2sPos;
+        if (!Math::WorldToScreen((*it).position, w2sPos))
+            continue;
+
+        std::string espStr = il2cppi_to_string((*it).bulkheadDC->fields.m_itemKey) + " [" + std::to_string(llround((*it).distance)) + "m]";
+
+        ImU32 color = ImGui::GetColorU32(espBulkheadSetting->renderColor);
+        ImU32 outlineColor = ImGui::GetColorU32(espBulkheadSetting->outlineColor);
+        RenderESPText(w2sPos, color, outlineColor, espStr);
+    }
+    G::worldBulkheadMtx.unlock();
+}
+
 void RenderWorldESP()
 {
     RenderWorldItems();
@@ -596,6 +624,7 @@ void RenderWorldESP()
     RenderGenerics();
     RenderCarryItems();
     RenderHSUs();
+    RenderBulkheads();
 }
 
 void DrawBone(ImU32 color, app::Vector3 startBone, app::Vector3 endBone, float thickness)

@@ -29,6 +29,7 @@ namespace Hooks
     void hkGenericSmallPickupItem_Core_Setup(app::GenericSmallPickupItem_Core* __this, app::ItemDataBlock* data, MethodInfo* method);
     void hkResourcePackPickup_Setup(app::ResourcePackPickup* __this, app::ItemDataBlock* data, MethodInfo* method);
     void hkLG_HSU_Setup(app::LG_HSU* __this, MethodInfo* method);
+    void hkLG_BulkheadDoorController_Core_Setup(app::LG_BulkheadDoorController_Core* __this, MethodInfo* method);
 
     void hkLG_ComputerTerminal_Setup(app::LG_ComputerTerminal* __this, app::TerminalStartStateData* startStateData, app::TerminalPlacementData* terminalPlacementData, MethodInfo* method);
 

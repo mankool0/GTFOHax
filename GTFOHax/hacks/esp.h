@@ -11,6 +11,7 @@ namespace ESP
         { "artifact_muted", "Artifact - Muted" },
         { "artifact_bold", "Artifact - Bold" },
         { "artifact_aggressive", "Artifact - Aggressive" },
+        { "Bulkhead", "Bulkhead" },
         { "BULKHEAD_KEY", "Bulkhead Key" },
         { "Cargo Crate", "Cargo Crate" },
         { "Cargo Crate High Security", "Cargo Crate HISEC" },
@@ -255,6 +256,31 @@ namespace ESP
         }
     };
 
+    struct WorldBulkheadDC
+    {
+        app::LG_BulkheadDoorController_Core* bulkheadDC;
+        app::LG_GenericTerminalItem* terminalItem;
+        app::Vector3 position;
+        float distance;
+
+        WorldBulkheadDC(app::LG_BulkheadDoorController_Core* bulkheadDC)
+        {
+            this->bulkheadDC = bulkheadDC;
+        }
+
+        void update()
+        {
+            this->terminalItem = reinterpret_cast<app::LG_GenericTerminalItem*>(bulkheadDC->fields.m_terminalItem);
+            this->position = app::LG_GenericTerminalItem_get_LocatorBeaconPosition(this->terminalItem, NULL);
+            this->distance = app::Vector3_Distance(this->position, G::localPlayer->fields.m_goodPosition, NULL);
+        }
+
+        bool operator>(const WorldBulkheadDC& rhs) const
+        {
+            return this->distance > rhs.distance;
+        }
+    };
+
     struct AgentESPSection
     {
         std::string type;
@@ -313,6 +339,7 @@ namespace ESP
     extern std::vector<WorldResourceItem> worldResourcePacks;
     extern std::vector<WorldHSUItem> worldHSUItems;
 
+    extern std::vector<WorldBulkheadDC> worldBulkheadDCs;
     extern std::vector<WorldTerminalItem> worldTerminals;
 
     void Init();

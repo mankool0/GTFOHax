@@ -22,6 +22,7 @@ namespace G {
     std::mutex worldResourcePackMtx;
     std::mutex worldTerminalsMtx;
     std::mutex worldHSUMtx;
+    std::mutex worldBulkheadMtx;
     std::mutex enemyVecMtx;
     std::mutex imguiMtx;
     std::mutex enemyAimMtx;
