@@ -130,6 +130,12 @@ void RenderTabPlayer()
     ImGui::Hotkey("", Player::noShakeToggleKey);
     ImGui::PopID();
 
+    ImGui::Checkbox("No Fog", &Player::noFogToggleKey.toggledOn);
+    ImGui::SameLine();
+    ImGui::SetCursorPosX(160);
+    ImGui::PushID("NoFogHotkey");
+    ImGui::Hotkey("", Player::noFogToggleKey);
+    ImGui::PopID();
 
     if (ImGui::Button("Give Health"))
         Player::GiveLocalHealth();

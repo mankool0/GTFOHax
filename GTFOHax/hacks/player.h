@@ -12,6 +12,7 @@ namespace Player
     extern KeyBindToggle noRecoilToggleKey;
     extern KeyBindToggle noSpreadToggleKey;
     extern KeyBindToggle noShakeToggleKey;
+    extern KeyBindToggle noFogToggleKey;
 
     extern KeyBind giveHealthKey;
     extern KeyBind giveDisinKey;

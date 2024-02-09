@@ -13,6 +13,7 @@ namespace Player
     KeyBindToggle noRecoilToggleKey;
     KeyBindToggle noSpreadToggleKey;
     KeyBindToggle noShakeToggleKey;
+    KeyBindToggle noFogToggleKey;
 
     KeyBind giveHealthKey;
     KeyBind giveDisinKey;
@@ -28,6 +29,7 @@ namespace Player
         noRecoilToggleKey.handleToggle();
         noSpreadToggleKey.handleToggle();
         noShakeToggleKey.handleToggle();
+        noFogToggleKey.handleToggle();
 
         if (giveHealthKey.isPressed())
             GiveLocalHealth();

@@ -215,6 +215,8 @@ void Hooks::InitHooks()
 
     HOOKATTACH(Dam_EnemyDamageBase_ProcessReceivedDamage);
 
+    HOOKATTACH(PreLitVolume_Update);
+
 #ifdef USE_DETOURS
     DetourTransactionCommit();
 #endif // USE_DETOURS
@@ -271,6 +273,8 @@ void Hooks::RemoveHooks()
     HOOKDETACH(LocalPlayerAgent_Update);
 
     HOOKDETACH(Dam_EnemyDamageBase_ProcessReceivedDamage);
+
+    HOOKDETACH(PreLitVolume_Update);
 
 #ifdef USE_DETOURS
     DetourTransactionCommit();
@@ -883,6 +887,22 @@ bool Hooks::hkDam_EnemyDamageBase_ProcessReceivedDamage(app::Dam_EnemyDamageBase
     }
 
     return retVal;
+}
+
+void Hooks::hkPreLitVolume_Update(app::PreLitVolume* __this, MethodInfo* method)
+{
+#ifdef USE_DETOURS
+    app::PreLitVolume_Update(__this, method);
+#else
+    static auto fpOFunc = reinterpret_cast<void (*)(app::PreLitVolume*, MethodInfo*)>(fpMap["PreLitVolume_Update"]);
+    fpOFunc(__this, method);
+#endif // USE_DETOURS
+
+    if (Player::noFogToggleKey.isToggled())
+    {
+        __this->fields.m_fogDensity = 0.0f;
+        __this->fields.m_densityHeightAltitude = -9999.0f;
+    }
 }
 
 LRESULT __stdcall WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)

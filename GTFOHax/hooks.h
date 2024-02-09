@@ -43,5 +43,7 @@ namespace Hooks
         app::Vector3 position, app::Vector3 direction, app::ES_HitreactType__Enum hitreact, bool tryForceHitreact, int32_t limbID,
         float staggerDamageMulti, app::DamageNoiseLevel__Enum damageNoiseLevel,
         uint32_t gearCategoryId, MethodInfo* method);
+
+    void hkPreLitVolume_Update(app::PreLitVolume* __this, MethodInfo* method);
 }
 
