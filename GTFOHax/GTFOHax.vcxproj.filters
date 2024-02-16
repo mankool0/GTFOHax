@@ -253,5 +253,6 @@
     <None Include="..\vcpkg.json" />
     <None Include="..\.gitignore" />
     <None Include="..\README.md" />
+    <None Include="PropertySheet.props" />
   </ItemGroup>
 </Project>
