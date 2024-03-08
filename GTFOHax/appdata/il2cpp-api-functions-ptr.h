@@ -7,7 +7,7 @@
 
 #define il2cpp_add_internal_call_ptr 0x00273810
 #define il2cpp_alloc_ptr 0x00273820
-#define il2cpp_allocation_granularity_ptr 0x00128300
+#define il2cpp_allocation_granularity_ptr 0x00128690
 #define il2cpp_array_class_get_ptr 0x00273830
 #define il2cpp_array_element_size_ptr 0x00273840
 #define il2cpp_array_get_byte_length_ptr 0x00273850
@@ -157,10 +157,10 @@
 #define il2cpp_object_get_class_ptr 0x002738B0
 #define il2cpp_object_get_size_ptr 0x002742A0
 #define il2cpp_object_get_virtual_method_ptr 0x002742B0
-#define il2cpp_object_header_size_ptr 0x00128300
+#define il2cpp_object_header_size_ptr 0x00128690
 #define il2cpp_object_new_ptr 0x002742C0
 #define il2cpp_object_unbox_ptr 0x002742E0
-#define il2cpp_offset_of_array_bounds_in_array_object_header_ptr 0x00128300
+#define il2cpp_offset_of_array_bounds_in_array_object_header_ptr 0x00128690
 #define il2cpp_offset_of_array_length_in_array_object_header_ptr 0x002742F0
 #define il2cpp_override_stack_backtrace_ptr 0x00274300
 #define il2cpp_profiler_install_ptr 0x00274310
