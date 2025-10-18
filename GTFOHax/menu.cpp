@@ -6,6 +6,7 @@
 #include "hacks\aimbot.h"
 #include "config\config.h"
 #include "ui.h"
+#include <algorithm>
 #include <iostream>
 #include <string>
 #include <helpers.h>
@@ -370,7 +371,7 @@ void RenderTabMisc()
     }
     ImGui::SameLine();
     if (ImGui::Button("Spawn Enemy"))
-        Enemy::SpawnEnemy(Enemy::enemyIDs[Enemy::enemyNames[selectedIndex]], app::AgentMode__Enum::Hibernate);
+        Enemy::SpawnEnemy(Enemy::enemyIDs[Enemy::enemyNames[selectedIndex]], app::AgentMode__Enum::Hibernate); // TODO: Fix map issue
 }
 
 void RenderTabConfig()
@@ -652,7 +653,7 @@ void DrawSkeleton(Enemy::EnemyInfo* fullInfo)
         Enemy::Bone prevBone;
         for (std::vector<app::HumanBodyBones__Enum>::iterator it = (*itOuter).begin(); it != (*itOuter).end(); ++it)
         {
-            Enemy::Bone curBone = fullInfo->skeletonBones[*it];
+            Enemy::Bone curBone = fullInfo->skeletonBones[*it]; // TODO: Fix map issue
             if (prevBone.position.x == 0.0f && prevBone.position.y == 0.0f && prevBone.position.z == 0.0f)
             {
                 prevBone = curBone;
@@ -661,18 +662,18 @@ void DrawSkeleton(Enemy::EnemyInfo* fullInfo)
             if (curBone.position.x == 0.0f && curBone.position.y == 0.0f && curBone.position.z == 0.0f)
                 continue;
             
-                if (prevBone.visible || curBone.visible)
-                {
-                    if (!ESP::enemyESP.visibleSec.showSkeleton || fullInfo->distance > ESP::enemyESP.visibleSec.skeletonRenderDistance)
-                        continue;
-                    DrawBone(ImGui::GetColorU32(ESP::enemyESP.visibleSec.skeletonColor), prevBone.position, curBone.position, ESP::enemyESP.visibleSec.skeletonThickness);
-                }
-                else
-                {
-                    if (!ESP::enemyESP.nonVisibleSec.showSkeleton || fullInfo->distance > ESP::enemyESP.nonVisibleSec.skeletonRenderDistance)
-                        continue;
-                    DrawBone(ImGui::GetColorU32(ESP::enemyESP.nonVisibleSec.skeletonColor), prevBone.position, curBone.position, ESP::enemyESP.nonVisibleSec.skeletonThickness);
-                }
+            if (prevBone.visible || curBone.visible)
+            {
+                if (!ESP::enemyESP.visibleSec.showSkeleton || fullInfo->distance > ESP::enemyESP.visibleSec.skeletonRenderDistance)
+                    continue;
+                DrawBone(ImGui::GetColorU32(ESP::enemyESP.visibleSec.skeletonColor), prevBone.position, curBone.position, ESP::enemyESP.visibleSec.skeletonThickness);
+            }
+            else
+            {
+                if (!ESP::enemyESP.nonVisibleSec.showSkeleton || fullInfo->distance > ESP::enemyESP.nonVisibleSec.skeletonRenderDistance)
+                    continue;
+                DrawBone(ImGui::GetColorU32(ESP::enemyESP.nonVisibleSec.skeletonColor), prevBone.position, curBone.position, ESP::enemyESP.nonVisibleSec.skeletonThickness);
+            }
 
             prevBone = curBone;
         }
@@ -684,7 +685,7 @@ void RenderEnemyAgent(Enemy::EnemyInfo* enemyInfo, ESP::AgentESPSection* espSett
     if (enemyInfo->distance > espSettings->renderDistance)
         return;
 
-    Enemy::Bone headBone = enemyInfo->useFallback ? enemyInfo->fallbackBone : enemyInfo->skeletonBones[app::HumanBodyBones__Enum::Head];
+    Enemy::Bone headBone = enemyInfo->useFallback ? enemyInfo->fallbackBone : enemyInfo->skeletonBones[app::HumanBodyBones__Enum::Head]; // TODO: Fix map issue
     ImVec2 w2sHead;
     if (!Math::WorldToScreen(headBone.position, w2sHead))
         return;
@@ -692,8 +693,8 @@ void RenderEnemyAgent(Enemy::EnemyInfo* enemyInfo, ESP::AgentESPSection* espSett
     ImVec2 w2sLeftFoot, w2sRightFoot;
     if (!enemyInfo->useFallback)
     {
-        Enemy::Bone leftFootBone = enemyInfo->skeletonBones[app::HumanBodyBones__Enum::LeftFoot];
-        Enemy::Bone rightFootBone = enemyInfo->skeletonBones[app::HumanBodyBones__Enum::RightFoot];
+        Enemy::Bone leftFootBone = enemyInfo->skeletonBones[app::HumanBodyBones__Enum::LeftFoot]; // TODO: Fix map issue
+        Enemy::Bone rightFootBone = enemyInfo->skeletonBones[app::HumanBodyBones__Enum::RightFoot]; // TODO: Fix map issue
         if (!Math::WorldToScreen(leftFootBone.position, w2sLeftFoot) ||
             !Math::WorldToScreen(rightFootBone.position, w2sRightFoot))
             return;
@@ -845,7 +846,7 @@ void RenderEnemyESP()
         if (enemyInfo->useFallback)
             defBone = enemyInfo->fallbackBone;
         else
-            defBone = enemyInfo->skeletonBones[app::HumanBodyBones__Enum::Head];
+            defBone = enemyInfo->skeletonBones[app::HumanBodyBones__Enum::Head]; // TODO: Fix map issue
 
         if (!G::mainCamera || !(enemyInfo->enemyAgent->fields.m_alive) || (defBone.position.x == 0.0f && defBone.position.y == 0.0f && defBone.position.z == 0.0f))
             continue;

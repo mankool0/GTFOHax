@@ -1,4 +1,5 @@
 #include "aimbot.h"
+#include <algorithm>
 #include <iostream>
 #include <string>
 #include "enemy.h"
@@ -98,7 +99,7 @@ namespace Aimbot
                     if (enemyInfo->skeletonBones.contains(app::HumanBodyBones__Enum::Head))
                     {
                         // Destroyed head bone can't be shot at. Make sure this isn't that
-                        Enemy::Bone headBone = enemyInfo->skeletonBones[app::HumanBodyBones__Enum::Head];
+                        Enemy::Bone headBone = enemyInfo->skeletonBones[app::HumanBodyBones__Enum::Head]; // TODO: Fix map issue
                         if (headBone.destroyed && Math::Vector3Eq(headBone.position, bone.position))
                             continue;
                     }

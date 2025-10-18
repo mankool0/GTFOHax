@@ -7,6 +7,7 @@
 #include "hacks\esp.h"
 #include "fonts\fonts.h"
 
+#include <algorithm>
 #include <iostream>
 #include <string>
 #include <misc/freetype/imgui_freetype.h>
