@@ -460,6 +460,10 @@ void RenderArtifacts()
     G::worldArtifMtx.lock();
     for (std::vector<ESP::WorldArtifactItem>::iterator it = ESP::worldArtifacts.begin(); it != ESP::worldArtifacts.end(); ++it)
     {
+        if ((*it).pickupItem == nullptr) {
+            continue;
+        }
+
         std::string itemCode;
         switch ((*it).artifactItem->fields.m_artifactCategory)
         {
@@ -487,6 +491,9 @@ void RenderCarryItems()
     G::worldCarryMtx.lock();
     for (std::vector<ESP::WorldCarryItem>::iterator it = ESP::worldCarryItems.begin(); it != ESP::worldCarryItems.end(); ++it)
     {
+        if ((*it).pickupItem == nullptr) {
+            continue;
+        }
         RenderPickupItem((*it).pickupItem, (*it).state, (*it).distance, "", il2cppi_to_string((*it).carryItem->fields.m_itemKey));
     }
     G::worldCarryMtx.unlock();
@@ -497,6 +504,9 @@ void RenderKeys()
     G::worldKeyMtx.lock();
     for (std::vector<ESP::WorldKeyItem>::iterator it = ESP::worldKeys.begin(); it != ESP::worldKeys.end(); ++it)
     {
+        if ((*it).pickupItem == nullptr) {
+            continue;
+        }
         std::string keyName = il2cppi_to_string((*it).keyItem->fields.m_keyItem->fields.m_keyName);
         std::string terminalName = keyName + "_" + std::to_string((*it).keyItem->fields.m_keyItem->fields.m_keyNum);
         if (keyName.find("KEY_") != std::string::npos)
@@ -511,16 +521,17 @@ void RenderGenerics()
     G::worldGenericMtx.lock();
     for (std::vector<ESP::WorldGenericItem>::iterator it = ESP::worldGenerics.begin(); it != ESP::worldGenerics.end(); ++it)
     {
+        if ((*it).pickupItem == nullptr) {
+            continue;
+        }
+        std::string itemKey = (*it).genericItem->fields.m_itemKey != NULL ? il2cppi_to_string((*it).genericItem->fields.m_itemKey) : "";
         switch ((*it).genericItem->fields.m_type)
         {
             case app::eSmallGenericPickupType__Enum::Generic:
-                //std::cout << "Trying to render Generic Small Pickup" << std::endl;
-                RenderPickupItem((*it).pickupItem, (*it).state, (*it).distance, "", il2cppi_to_string((*it).genericItem->fields.m_itemKey));
+                RenderPickupItem((*it).pickupItem, (*it).state, (*it).distance, "", itemKey);
                 break;
             case app::eSmallGenericPickupType__Enum::Personnel_Id:
-                //(*it)->fields.m_graphics->fields.m_serial->fields.
-                //std::cout << "Trying to render Personnel ID Small Pickup" << std::endl;
-                RenderPickupItem((*it).pickupItem, (*it).state, (*it).distance, "Personnel ID", il2cppi_to_string((*it).genericItem->fields.m_itemKey));
+                RenderPickupItem((*it).pickupItem, (*it).state, (*it).distance, "Personnel ID", itemKey);
                 break;
         }
     }
@@ -532,6 +543,9 @@ void RenderResourcePacks()
     G::worldResourcePackMtx.lock();
     for (std::vector<ESP::WorldResourceItem>::iterator it = ESP::worldResourcePacks.begin(); it != ESP::worldResourcePacks.end(); ++it)
     {
+        if ((*it).pickupItem == nullptr) {
+            continue;
+        }
         RenderPickupItem((*it).pickupItem, (*it).state, (*it).distance, "", il2cppi_to_string((*it).resourceItem->fields.m_itemKey));
     }
     G::worldResourcePackMtx.unlock();
