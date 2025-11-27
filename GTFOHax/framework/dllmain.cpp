@@ -2,10 +2,10 @@
 // DLL entry point
 
 #define WIN32_LEAN_AND_MEAN
-#include "..\globals.h"
+#include "globals.h"
 #include <windows.h>
 #include "il2cpp-init.h"
-#include "..\user\main.h"
+#include "user\main.h"
 
 // DLL entry point
 BOOL APIENTRY DllMain( HMODULE hModule,

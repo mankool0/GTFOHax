@@ -1,15 +1,15 @@
 // Generated C++ file by Il2CppInspector - http://www.djkaty.com - https://github.com/djkaty
 // Custom injected code entry point
-#include "..\framework\pch-il2cpp.h"
+#include "pch-il2cpp.h"
 
 #define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
+#include <windows.h>
 #include <iostream>
 #include <vector>
-#include "..\framework\helpers.h"
-#include "..\hooks.h"
-#include "..\hacks\esp.h"
-#include "..\config\config.h"
+#include "helpers.h"
+#include "hooks.h"
+#include "hacks\esp.h"
+#include "config\config.h"
 
 
 // Set the name of your log file here

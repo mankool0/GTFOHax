@@ -1,6 +1,5 @@
 // Generated C++ file by Il2CppInspector - http://www.djkaty.com - https://github.com/djkaty
 // Helper functions
-#define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
 
 #include "pch-il2cpp.h"
 
@@ -10,7 +9,6 @@
 #include <codecvt>
 #include <chrono>
 #include "helpers.h"
-
 
 // Log file location
 extern const LPCWSTR LOG_FILE;
