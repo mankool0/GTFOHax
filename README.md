@@ -64,14 +64,14 @@ Output locations:
 ## Build With Visual Studio (Windows)
 
 ### Prerequisites
-1. [Visual Studio 2022](https://visualstudio.microsoft.com/) with "Desktop development with C++" workload
+1. [Visual Studio 2026](https://visualstudio.microsoft.com/) with "Desktop development with C++" workload
 2. [vcpkg](https://vcpkg.io/en/getting-started.html) - Follow steps 1-2 to clone and bootstrap, then run: `vcpkg integrate install`
 
 ### Build With MSBuild CLI
 
 1. Open Visual Studio Developer Command Prompt:
    ```cmd
-   %comspec% /k "C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\Tools\VsDevCmd.bat"
+   %comspec% /k "C:\Program Files\Microsoft Visual Studio\18\Community\Common7\Tools\VsDevCmd.bat"
    ```
 
 2. Build:
