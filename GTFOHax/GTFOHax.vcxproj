@@ -61,7 +61,7 @@
     <ClCompile Include="hacks\player.cpp" />
     <ClCompile Include="hooks.cpp" />
     <ClCompile Include="InputUtil.cpp" />
-    <ClCompile Include="math.cpp" />
+    <ClCompile Include="utils\math.cpp" />
     <ClCompile Include="menu.cpp" />
     <ClCompile Include="ui.cpp" />
     <ClCompile Include="user\main.cpp" />
@@ -85,12 +85,12 @@
     <ClInclude Include="..\kiero\minhook\src\hde\table32.h" />
     <ClInclude Include="..\kiero\minhook\src\hde\table64.h" />
     <ClInclude Include="..\kiero\minhook\src\trampoline.h" />
-    <ClInclude Include="appdata\il2cpp-api-functions.h" />
-    <ClInclude Include="appdata\il2cpp-api-functions-ptr.h" />
-    <ClInclude Include="appdata\il2cpp-functions.h" />
-    <ClInclude Include="appdata\il2cpp-metadata-version.h" />
-    <ClInclude Include="appdata\il2cpp-types-ptr.h" />
-    <ClInclude Include="appdata\il2cpp-types.h" />
+    <ClInclude Include="appdata\msvc\il2cpp-api-functions.h" />
+    <ClInclude Include="appdata\msvc\il2cpp-api-functions-ptr.h" />
+    <ClInclude Include="appdata\msvc\il2cpp-functions.h" />
+    <ClInclude Include="appdata\msvc\il2cpp-metadata-version.h" />
+    <ClInclude Include="appdata\msvc\il2cpp-types-ptr.h" />
+    <ClInclude Include="appdata\msvc\il2cpp-types.h" />
     <ClInclude Include="config\config.h" />
     <ClInclude Include="fonts\fonts.h" />
     <ClInclude Include="framework\helpers.h" />
@@ -130,7 +130,7 @@
     <UseDebugLibraries>true</UseDebugLibraries>
     <!--<PlatformToolset>v142</PlatformToolset>-->
     <CharacterSet>Unicode</CharacterSet>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v145</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
@@ -138,14 +138,14 @@
     <!--<PlatformToolset>v142</PlatformToolset>-->
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v145</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <!--<PlatformToolset>v142</PlatformToolset>-->
     <CharacterSet>Unicode</CharacterSet>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v145</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
@@ -153,7 +153,7 @@
     <!--<PlatformToolset>v142</PlatformToolset>-->
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v145</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -211,7 +211,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch-il2cpp.h</PrecompiledHeaderFile>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>$(ProjectDir)appdata;$(ProjectDir)framework;$(ProjectDir)user</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)appdata\msvc;$(ProjectDir)config;$(ProjectDir)fonts;$(ProjectDir)framework;$(ProjectDir)hacks;$(ProjectDir)user;$(SolutionDir)kiero;$(SolutionDir)kiero\minhook\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -230,7 +230,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch-il2cpp.h</PrecompiledHeaderFile>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>$(ProjectDir)appdata;$(ProjectDir)framework;$(ProjectDir)user</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)appdata\msvc;$(ProjectDir)config;$(ProjectDir)fonts;$(ProjectDir)framework;$(ProjectDir)hacks;$(ProjectDir)user;$(SolutionDir)kiero;$(SolutionDir)kiero\minhook\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -249,7 +249,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch-il2cpp.h</PrecompiledHeaderFile>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>$(ProjectDir)appdata;$(ProjectDir)framework;$(ProjectDir)user;$(SolutionDir)imgui;$(SolutionDir)imgui\backends</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)appdata\msvc;$(ProjectDir)config;$(ProjectDir)fonts;$(ProjectDir)framework;$(ProjectDir)hacks;$(ProjectDir)user;$(SolutionDir)kiero;$(SolutionDir)kiero\minhook\include;$(SolutionDir)imgui;$(SolutionDir)imgui\backends</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <PreprocessToFile>false</PreprocessToFile>
       <ShowIncludes>false</ShowIncludes>
@@ -279,7 +279,7 @@ exit 0</Command>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch-il2cpp.h</PrecompiledHeaderFile>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>$(ProjectDir)appdata;$(ProjectDir)framework;$(ProjectDir)user;$(SolutionDir)imgui;$(SolutionDir)imgui\backends</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)appdata\msvc;$(ProjectDir)config;$(ProjectDir)fonts;$(ProjectDir)framework;$(ProjectDir)hacks;$(ProjectDir)user;$(SolutionDir)kiero;$(SolutionDir)kiero\minhook\include;$(SolutionDir)imgui;$(SolutionDir)imgui\backends</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>

@@ -95,7 +95,11 @@ Output locations:
 
 1. Build Il2CppInspector from [mankool0/Il2CppInspector](https://github.com/mankool0/Il2CppInspector) (includes necessary patches) or use the [upstream version](https://github.com/djkaty/Il2CppInspector) with [these changes](https://github.com/djkaty/Il2CppInspector/issues/193).
 
-2. Create a C++ scaffolding project targeting **GCC** and replace all files in the `appdata/` directory with newly generated ones.
+2. Generate C++ scaffolding projects for both compilers:
+   - Create a project targeting **GCC** and place files in `GTFOHax/appdata/gcc/`
+   - Create a project targeting **MSVC** and place files in `GTFOHax/appdata/msvc/`
+
+   The build system automatically selects the correct files based on the compiler being used.
 
 3. Fix any errors that might show up if game functions changed.
 

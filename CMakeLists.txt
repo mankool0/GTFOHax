@@ -107,7 +107,7 @@ add_library(GTFOHaxDLL SHARED
 
 target_include_directories(GTFOHaxDLL PRIVATE
     ${SRC_DIR}
-    ${SRC_DIR}/appdata
+    ${SRC_DIR}/appdata/gcc
     ${SRC_DIR}/config
     ${SRC_DIR}/fonts
     ${SRC_DIR}/framework

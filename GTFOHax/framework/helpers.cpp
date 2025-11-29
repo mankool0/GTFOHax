@@ -28,7 +28,9 @@ void il2cppi_log_write(std::string text) {
     auto now = std::chrono::system_clock::now();
     auto time_t_now = std::chrono::system_clock::to_time_t(now);
     char dateBuffer[100];
-    std::strftime(dateBuffer, sizeof(dateBuffer), "%F %T %Z\t", std::localtime(&time_t_now));
+    tm timeInfo;
+    localtime_s(&timeInfo, &time_t_now);
+    std::strftime(dateBuffer, sizeof(dateBuffer), "%F %T %Z\t", &timeInfo);
     std::string dateString(dateBuffer);
     DWORD written;
     WriteFile(hfile, dateString.c_str(), (DWORD)dateString.length(), &written, NULL);
@@ -45,9 +47,15 @@ void il2cppi_new_console() {
 
 // Helper function to convert Il2CppString to std::string
 std::string il2cppi_to_string(Il2CppString* str) {
-    std::u16string u16(reinterpret_cast<const char16_t*>(str->chars));
-    static std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> convert;
-    return convert.to_bytes(u16);
+    if (!str || !str->chars || str->length == 0) return "";
+
+    const wchar_t* wstr = reinterpret_cast<const wchar_t*>(str->chars);
+    int size_needed = WideCharToMultiByte(CP_UTF8, 0, wstr, str->length, nullptr, 0, nullptr, nullptr);
+    if (size_needed <= 0) return "";
+
+    std::string result(size_needed, 0);
+    WideCharToMultiByte(CP_UTF8, 0, wstr, str->length, &result[0], size_needed, nullptr, nullptr);
+    return result;
 }
 
 // Helper function to convert System.String to std::string

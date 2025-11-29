@@ -7,7 +7,11 @@
 #include <sstream>
 #include <iomanip>
 
-#include "il2cpp-metadata-version.h"
+#ifdef _MSC_VER
+#include "../appdata/msvc/il2cpp-metadata-version.h"
+#else
+#include "../appdata/gcc/il2cpp-metadata-version.h"
+#endif
 
 // Helper function to get the module base address
 uintptr_t il2cppi_get_base_address();

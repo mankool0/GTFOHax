@@ -6,21 +6,37 @@
 #include <cstdint>
 
 // Application-specific types
-#include "il2cpp-types.h"
+#ifdef _MSC_VER
+#include "../appdata/msvc/il2cpp-types.h"
+#else
+#include "../appdata/gcc/il2cpp-types.h"
+#endif
 
 // IL2CPP API function pointers
-#include "il2cpp-api-functions-ptr.h"
+#ifdef _MSC_VER
+#include "../appdata/msvc/il2cpp-api-functions-ptr.h"
+#else
+#include "../appdata/gcc/il2cpp-api-functions-ptr.h"
+#endif
 
 // IL2CPP APIs
 #define DO_API(r, n, p) extern r (*n) p
-#include "il2cpp-api-functions.h"
+#ifdef _MSC_VER
+#include "../appdata/msvc/il2cpp-api-functions.h"
+#else
+#include "../appdata/gcc/il2cpp-api-functions.h"
+#endif
 #undef DO_API
 
 // Application-specific functions
 #define DO_APP_FUNC(a, r, n, p) extern r (*n) p
 #define DO_APP_FUNC_METHODINFO(a, n) extern struct MethodInfo ** n
 namespace app {
-	#include "il2cpp-functions.h"
+#ifdef _MSC_VER
+	#include "../appdata/msvc/il2cpp-functions.h"
+#else
+	#include "../appdata/gcc/il2cpp-functions.h"
+#endif
 }
 #undef DO_APP_FUNC
 #undef DO_APP_FUNC_METHODINFO
@@ -28,6 +44,10 @@ namespace app {
 // TypeInfo pointers
 #define DO_TYPEDEF(a, n) extern n ## __Class** n ## __TypeInfo
 namespace app {
-	#include "il2cpp-types-ptr.h"
+#ifdef _MSC_VER
+	#include "../appdata/msvc/il2cpp-types-ptr.h"
+#else
+	#include "../appdata/gcc/il2cpp-types-ptr.h"
+#endif
 }
 #undef DO_TYPEDEF
