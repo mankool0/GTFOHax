@@ -3,7 +3,7 @@
 #include <helpers.h>
 #include "aimbot.h"
 #include "esp.h"
-#include "../math.h"
+#include "utils/math.h"
 
 namespace Enemy
 {

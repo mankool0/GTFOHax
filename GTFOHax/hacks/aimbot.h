@@ -1,6 +1,6 @@
 #pragma once
-#include "..\globals.h"
-#include "..\InputUtil.h"
+#include "globals.h"
+#include "InputUtil.h"
 
 namespace Aimbot
 {

@@ -1,5 +1,5 @@
 #pragma once
-#include "..\InputUtil.h"
+#include "InputUtil.h"
 
 
 namespace Player

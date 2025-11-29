@@ -1,16 +1,17 @@
 #include "menu.h"
 #include "globals.h"
-#include "hacks\esp.h"
-#include "hacks\player.h"
-#include "hacks\enemy.h"
-#include "hacks\aimbot.h"
-#include "config\config.h"
+#include "hacks/esp.h"
+#include "hacks/player.h"
+#include "hacks/enemy.h"
+#include "hacks/aimbot.h"
+#include "config/config.h"
 #include "ui.h"
 #include <algorithm>
 #include <iostream>
 #include <string>
+#include <cmath>
 #include <helpers.h>
-#include "math.h"
+#include "utils/math.h"
 
 const char* tabs[] = {
     "Player",

@@ -3,7 +3,7 @@
 #include <iostream>
 #include <string>
 #include "enemy.h"
-#include "..\math.h"
+#include "utils/math.h"
 
 namespace Aimbot
 {

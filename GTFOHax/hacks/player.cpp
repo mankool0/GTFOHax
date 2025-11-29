@@ -1,5 +1,5 @@
 #include "player.h"
-#include "..\globals.h"
+#include "globals.h"
 
 #include <iostream>
 

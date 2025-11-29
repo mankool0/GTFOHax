@@ -18,13 +18,11 @@ void il2cppi_log_write(std::string text);
 // Helper function to open a new console window and redirect stdout there
 void il2cppi_new_console();
 
-#if _MSC_VER >= 1920
 // Helper function to convert Il2CppString to std::string
 std::string il2cppi_to_string(Il2CppString* str);
 
 // Helper function to convert System.String to std::string
 std::string il2cppi_to_string(app::String* str);
-#endif
 
 // Helper function to check if a metadata usage pointer is initialized
 template<typename T> bool il2cppi_is_initialized(T* metadataItem) {

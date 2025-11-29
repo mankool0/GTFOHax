@@ -8,8 +8,8 @@
 #include <vector>
 #include "helpers.h"
 #include "hooks.h"
-#include "hacks\esp.h"
-#include "config\config.h"
+#include "hacks/esp.h"
+#include "config/config.h"
 
 
 // Set the name of your log file here

@@ -1,24 +1,24 @@
-#define USE_DETOURS
+// #define USE_DETOURS
 
 #include "hooks.h"
 #include "menu.h"
-#include "hacks\player.h"
-#include "framework\helpers.h"
-#include "hacks\esp.h"
-#include "fonts\fonts.h"
+#include "hacks/player.h"
+#include "framework/helpers.h"
+#include "hacks/esp.h"
+#include "fonts/fonts.h"
 
 #include <algorithm>
 #include <iostream>
 #include <string>
 #include <misc/freetype/imgui_freetype.h>
 #include "hacks/enemy.h"
-#include "math.h"
+#include "utils/math.h"
 #include "hacks/aimbot.h"
 
 #ifdef USE_DETOURS
 #include <detours/detours.h>
 #else
-#include "../kiero/minhook/include/MinHook.h"
+#include "MinHook.h"
 #endif // USE_DETOURS
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -133,9 +133,9 @@ void HookDetach(PVOID ppPointer, std::string functionName)
 }
 
 #define HOOKATTACH(fun) void (*fp ## fun)(void); \
-                        HookAttach(app::fun, &Hooks:: ## hk ## fun, reinterpret_cast<PVOID*>(&fp ## fun), #fun); \
+                        HookAttach(reinterpret_cast<PVOID>(app::fun), reinterpret_cast<PVOID>(&Hooks::hk ## fun), reinterpret_cast<PVOID*>(&fp ## fun), #fun); \
                         fpMap[#fun] = (fp ## fun)
-#define HOOKDETACH(fun) (HookDetach(app::fun, #fun))
+#define HOOKDETACH(fun) (HookDetach(reinterpret_cast<PVOID>(app::fun), #fun))
 
 #endif // USE_DETOURS
 

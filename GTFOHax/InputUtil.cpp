@@ -1,8 +1,8 @@
 #include <algorithm>
 #include <array>
 #include <string_view>
-#include <Windows.h>
-#include "../imgui/imgui.h"
+#include <windows.h>
+#include "imgui.h"
 #include "InputUtil.h"
 
 /*

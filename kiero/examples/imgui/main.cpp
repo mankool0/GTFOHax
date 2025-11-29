@@ -25,7 +25,7 @@
 # error "The example requires that minhook be enabled!"
 #endif
 
-#include <Windows.h>
+#include <windows.h>
 
 int kieroExampleThread()
 {

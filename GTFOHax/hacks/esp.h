@@ -1,6 +1,6 @@
 #pragma once
-#include "..\InputUtil.h"
-#include "..\globals.h"
+#include "InputUtil.h"
+#include "globals.h"
 #include <map>
 #include <array>
 

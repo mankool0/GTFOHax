@@ -1,14 +1,17 @@
 #pragma once
-#include "..\framework\pch-il2cpp.h"
-#include <Windows.h>
+#include "pch-il2cpp.h"
+#include <windows.h>
 #include <d3d11.h>
 #include <dxgi.h>
-#include "..\kiero\kiero.h"
-#include "..\imgui\imgui.h"
-#include "..\imgui\backends\imgui_impl_win32.h"
-#include "..\imgui\backends\imgui_impl_dx11.h"
+#include "kiero.h"
+#include "imgui.h"
+#include "imgui_impl_win32.h"
+#include "imgui_impl_dx11.h"
 #include <queue>
 #include <functional>
+#include <string>
+#include <memory>
+#include <thread>
 #include "InputUtil.h"
 #include <mutex>
 

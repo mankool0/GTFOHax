@@ -1,5 +1,5 @@
 #include "kiero.h"
-#include <Windows.h>
+#include <windows.h>
 #include <assert.h>
 
 #if KIERO_INCLUDE_D3D9

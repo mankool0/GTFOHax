@@ -1,8 +1,8 @@
 #include "config.h"
-#include "..\globals.h"
-#include "..\hacks\esp.h"
-#include "..\hacks\player.h"
-#include "..\hacks\aimbot.h"
+#include "globals.h"
+#include "esp.h"
+#include "player.h"
+#include "aimbot.h"
 #include "helpers.h"
 #include <iostream>
 #include <fstream>

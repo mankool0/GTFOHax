@@ -26,7 +26,10 @@ void il2cppi_log_write(std::string text) {
         MessageBoxW(0, L"Could not open log file", 0, 0);
 
     auto now = std::chrono::system_clock::now();
-    auto dateString = std::format("{:%F %T %Z}", now) + "\t";
+    auto time_t_now = std::chrono::system_clock::to_time_t(now);
+    char dateBuffer[100];
+    std::strftime(dateBuffer, sizeof(dateBuffer), "%F %T %Z\t", std::localtime(&time_t_now));
+    std::string dateString(dateBuffer);
     DWORD written;
     WriteFile(hfile, dateString.c_str(), (DWORD)dateString.length(), &written, NULL);
     WriteFile(hfile, text.c_str(), (DWORD) text.length(), &written, NULL);
@@ -40,7 +43,6 @@ void il2cppi_new_console() {
     freopen_s((FILE**) stdout, "CONOUT$", "w", stdout);
 }
 
-#if _MSC_VER >= 1920
 // Helper function to convert Il2CppString to std::string
 std::string il2cppi_to_string(Il2CppString* str) {
     std::u16string u16(reinterpret_cast<const char16_t*>(str->chars));
@@ -52,4 +54,3 @@ std::string il2cppi_to_string(Il2CppString* str) {
 std::string il2cppi_to_string(app::String* str) {
     return il2cppi_to_string(reinterpret_cast<Il2CppString*>(str));
 }
-#endif
