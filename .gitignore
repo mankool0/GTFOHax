@@ -367,3 +367,6 @@ FodyWeavers.xsd
 
 # Build script output
 /patcheslog.txt
+
+/refData/
+/build/
