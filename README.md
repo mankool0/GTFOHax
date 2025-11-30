@@ -91,6 +91,112 @@ Output locations:
 
 **Note:** If this is your first time building and you see "Error applying a patch" in PreBuildEvent or build output, try to manually apply the failed git patch. If it's already been applied this error can be ignored.
 
+# Debugging (Linux with Steam/Proton)
+
+## Prerequisites
+- GDB debugger
+- protontricks (for Wine integration)
+- Python 3
+
+**Fedora:**
+```bash
+sudo dnf install gdb python3 protontricks
+```
+
+**Debian/Ubuntu:**
+```bash
+sudo apt install gdb python3 protontricks
+```
+
+**Arch Linux:**
+```bash
+sudo pacman -S gdb python protontricks
+```
+
+## Debugging Workflow
+
+### 1. Build with Debug Symbols
+```bash
+cmake -B build -DCMAKE_BUILD_TYPE=Debug
+cmake --build build -j$(nproc)
+```
+
+This builds both `GTFOHax.dll` and `injector.exe` with full debug information.
+
+### 2. Using the Injector
+
+The injector tool loads your DLL into the running GTFO process:
+
+```bash
+# Launch GTFO first, then inject the DLL
+cd build
+protontricks-launch --no-bwrap --appid 493520 ./injector.exe GTFO.exe ./GTFOHax.dll
+```
+
+Default behavior (if no arguments provided):
+- Process: `GTFO.exe`
+- DLL: `GTFOHax.dll` in the same directory as injector
+
+### 3. VSCode Debugging
+
+This project includes VSCode tasks and launch configurations for streamlined debugging.
+
+**Available Tasks** (Terminal -> Run Task):
+- `Build All` - Builds DLL and injector
+- `Build DLL Only` - Builds just the DLL
+- `Build Injector Only` - Builds just the injector
+- `Wait for GTFO Process` - Waits for GTFO to launch
+- `Inject DLL` - Automatically builds, waits for GTFO, and injects
+
+**Debugging Steps:**
+1. Launch GTFO through Steam
+2. Run task: `Inject DLL` (Ctrl+Shift+B or Terminal -> Run Task)
+3. Use Debug panel: `Attach to GTFO` configuration
+4. Pick the `GTFO.exe` process when prompted
+5. GDB will automatically load DLL symbols via [scripts/gdb_load_symbols.py](scripts/gdb_load_symbols.py)
+
+The symbol loader automatically:
+- Finds GTFOHax.dll in process memory
+- Calculates runtime addresses for all sections
+- Loads symbols with correct relocation
+- Enables source-level debugging with breakpoints
+
+### 4. Crash Analysis
+
+If GTFO crashes, analyze the crash log to map addresses to source code:
+
+```bash
+# Auto-detect latest crash log
+python3 scripts/process_crash_stack.py
+
+# Or specify a log file
+python3 scripts/process_crash_stack.py /path/to/crash.log --dll build/GTFOHax.dll
+```
+
+The script will:
+- Extract crash addresses from the log
+- Map addresses to source files and line numbers
+- Display source code context around the crash
+- Show disassembly with the crash location highlighted
+- Identify the nearest function symbol
+
+### 5. Manual GDB Debugging
+
+For advanced debugging without VSCode:
+
+```bash
+# Attach to running process
+gdb -p $(pgrep GTFO.exe)
+
+# Load symbols manually
+(gdb) source scripts/gdb_load_symbols.py
+(gdb) load-symbols build/GTFOHax.dll
+
+# Set breakpoints
+(gdb) break hooks.cpp:123
+(gdb) continue
+```
+
 # Updating
 
 1. Build Il2CppInspector from [mankool0/Il2CppInspector](https://github.com/mankool0/Il2CppInspector) (includes necessary patches) or use the [upstream version](https://github.com/djkaty/Il2CppInspector) with [these changes](https://github.com/djkaty/Il2CppInspector/issues/193).
