@@ -7,12 +7,6 @@ project(GTFOHax LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(PKG_CONFIG_EXECUTABLE x86_64-w64-mingw32-pkg-config)
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(FREETYPE REQUIRED IMPORTED_TARGET freetype2)
-pkg_check_modules(PNG REQUIRED IMPORTED_TARGET libpng)
-pkg_check_modules(ZLIB REQUIRED IMPORTED_TARGET zlib)
-pkg_check_modules(BZ2 REQUIRED IMPORTED_TARGET bzip2)
 
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type" FORCE)
@@ -31,7 +25,6 @@ set(IMGUI_SOURCES
     ${IMGUI_DIR}/imgui_draw.cpp
     ${IMGUI_DIR}/imgui_tables.cpp
     ${IMGUI_DIR}/imgui_widgets.cpp
-    ${IMGUI_DIR}/misc/freetype/imgui_freetype.cpp
 )
 set(IMGUI_BACKEND_SOURCES
     ${IMGUI_DIR}/backends/imgui_impl_dx11.cpp
@@ -117,8 +110,6 @@ target_include_directories(GTFOHaxDLL PRIVATE
     ${KIERO_DIR}
     ${IMGUI_DIR}
     ${IMGUI_DIR}/backends
-    ${IMGUI_DIR}/misc/freetype
-    ${FREETYPE_INCLUDE_DIRS}
 )
 
 target_compile_options(GTFOHaxDLL PRIVATE
@@ -144,10 +135,6 @@ target_link_libraries(GTFOHaxDLL PRIVATE
     dxgi
     d3dcompiler
     dwmapi
-    PkgConfig::FREETYPE
-    PkgConfig::PNG
-    PkgConfig::ZLIB
-    PkgConfig::BZ2
 )
 
 set_target_properties(GTFOHaxDLL PROPERTIES
