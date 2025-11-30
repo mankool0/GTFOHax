@@ -151,3 +151,30 @@ target_link_options(GTFOHaxDLL PRIVATE
     -pthread
     $<$<CONFIG:Release>:-s>
 )
+
+# Injector executable
+add_executable(injector ${CMAKE_CURRENT_SOURCE_DIR}/injector.cpp)
+
+target_compile_options(injector PRIVATE
+    -static-libgcc
+    -static-libstdc++
+    -municode
+    $<$<CONFIG:Debug>:-g -ggdb -gdwarf-4 -O0 -fno-omit-frame-pointer>
+    $<$<CONFIG:Release>:-O2 -s>
+)
+
+target_link_libraries(injector PRIVATE
+    shlwapi
+)
+
+target_link_options(injector PRIVATE
+    -Wl,--subsystem,console
+    -static
+    -municode
+    $<$<CONFIG:Release>:-s>
+)
+
+set_target_properties(injector PROPERTIES
+    OUTPUT_NAME "injector"
+    SUFFIX ".exe"
+)
