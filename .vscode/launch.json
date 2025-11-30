@@ -1,0 +1,34 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Attach to GTFO",
+            "type": "cppdbg",
+            "request": "attach",
+            "program": "${userHome}/.local/share/Steam/steamapps/common/GTFO/GTFO.exe",
+            "processId": "${command:pickProcess}",
+            "MIMode": "gdb",
+            "miDebuggerPath": "/usr/bin/gdb",
+            "logging": {
+                "engineLogging": true
+            },
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Load DLL symbols",
+                    "text": "source ${workspaceFolder}/scripts/gdb_load_symbols.py",
+                    "ignoreFailures": false
+                },
+                {
+                    "description": "Disable stop on exceptions",
+                    "text": "handle all nostop noprint",
+                    "ignoreFailures": true
+                }
+            ]
+        }
+    ]
+}

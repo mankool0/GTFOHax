@@ -1,0 +1,109 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "CMake Configure",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "-B",
+                "build",
+                "-DCMAKE_BUILD_TYPE=Debug"
+            ],
+            "group": "build",
+            "problemMatcher": []
+        },
+        {
+            "label": "Build All",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "build",
+                "--parallel",
+                "$(nproc)"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": ["$gcc"],
+            "dependsOn": ["CMake Configure"]
+        },
+        {
+            "label": "Build DLL Only",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "build",
+                "--target",
+                "GTFOHaxDLL",
+                "--parallel",
+                "$(nproc)"
+            ],
+            "group": "build",
+            "problemMatcher": ["$gcc"],
+            "dependsOn": ["CMake Configure"]
+        },
+        {
+            "label": "Build Injector Only",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "build",
+                "--target",
+                "injector",
+                "--parallel",
+                "$(nproc)"
+            ],
+            "group": "build",
+            "problemMatcher": ["$gcc"],
+            "dependsOn": ["CMake Configure"]
+        },
+        {
+            "label": "Clean Build",
+            "type": "shell",
+            "command": "rm",
+            "args": [
+                "-rf",
+                "build"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "Wait for GTFO Process",
+            "type": "shell",
+            "command": "bash",
+            "args": [
+                "-c",
+                "MAX_ATTEMPTS=10; WAIT_SECONDS=10; process_name=\"GTFO.exe\"; attempt=1; found=false; while [ $attempt -le $MAX_ATTEMPTS ]; do echo \"Checking for $process_name (attempt $attempt of $MAX_ATTEMPTS)...\"; if ps aux | grep -i \"$process_name\" | grep -v grep > /dev/null; then echo \"Process $process_name found!\"; found=true; break; fi; echo \"Process not found. Waiting $WAIT_SECONDS seconds before retry...\"; sleep $WAIT_SECONDS; attempt=$((attempt + 1)); done; if [ \"$found\" = false ]; then echo \"Process $process_name not found after $MAX_ATTEMPTS attempts. Exiting.\"; exit 1; fi; echo \"Ready to inject!\""
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Inject DLL",
+            "type": "shell",
+            "command": "protontricks-launch",
+            "args": [
+                "--no-bwrap",
+                "--appid",
+                "493520",
+                "${workspaceFolder}/build/injector.exe",
+                "GTFO.exe",
+                "${workspaceFolder}/build/GTFOHax.dll"
+            ],
+            "dependsOn": [
+                "Build All",
+                "Wait for GTFO Process"
+            ],
+            "dependsOrder": "sequence",
+            "problemMatcher": []
+        }
+    ]
+}
