@@ -751,13 +751,73 @@ HRESULT __stdcall Hooks::hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval
 
             ImGuiIO& io = ImGui::GetIO();
             io.ImeWindowHandle = G::windowHwnd;
-            G::defaultFont = io.Fonts->AddFontDefault();
+            
+            // Load font with Chinese support
             ImFontConfig config;
             config.FontBuilderFlags |= ImGuiFreeTypeBuilderFlags::ImGuiFreeTypeBuilderFlags_ForceAutoHint;
-            G::espFont = io.Fonts->AddFontFromMemoryCompressedBase85TTF(Fonts::GetRobotoFontDataTTFBase85(), 14, &config);
+            
+            // Build custom glyph ranges including all needed Chinese characters
+            static const ImWchar ranges[] = {
+                0x0020, 0x00FF, // Basic Latin + Latin Supplement
+                0x2000, 0x206F, // General Punctuation
+                0x3000, 0x30FF, // CJK Symbols and Punctuations, Hiragana, Katakana
+                0x31F0, 0x31FF, // Katakana Phonetic Extensions
+                0xFF00, 0xFFEF, // Half-width characters
+                0x4e00, 0x9FAF, // CJK Ideograms
+                0,
+            };
+            
+            // Try multiple Chinese fonts in order of preference
+            const char* chineseFonts[] = {
+                "C:\\Windows\\Fonts\\msyh.ttc",    // Microsoft YaHei (Win7+)
+                "C:\\Windows\\Fonts\\simhei.ttf",  // SimHei (older systems)
+                "C:\\Windows\\Fonts\\simsun.ttc",  // SimSun (most compatible)
+                "C:\\Windows\\Fonts\\msyhl.ttc",   // YaHei Light
+                "C:\\Windows\\Fonts\\simkai.ttf",  // KaiTi
+            };
+            
+            ImFont* fontWithChinese = nullptr;
+            for (const char* fontPath : chineseFonts) {
+                fontWithChinese = io.Fonts->AddFontFromFileTTF(fontPath, 16.0f, &config, ranges);
+                if (fontWithChinese) break;
+            }
+            
+            // If all system fonts fail, use embedded font (no Chinese support)
+            if (fontWithChinese) {
+                G::defaultFont = fontWithChinese;
+                G::chineseFontAvailable = true;
+            } else {
+                G::defaultFont = io.Fonts->AddFontFromMemoryCompressedBase85TTF(
+                    Fonts::GetRobotoFontDataTTFBase85(), 
+                    16, 
+                    &config
+                );
+                G::chineseFontAvailable = false;
+            }
+            
+            // ESP font - try same fonts
+            ImFont* espFontWithChinese = nullptr;
+            for (const char* fontPath : chineseFonts) {
+                espFontWithChinese = io.Fonts->AddFontFromFileTTF(fontPath, 14.0f, &config, ranges);
+                if (espFontWithChinese) break;
+            }
+            
+            if (espFontWithChinese) {
+                G::espFont = espFontWithChinese;
+            } else {
+                G::espFont = io.Fonts->AddFontFromMemoryCompressedBase85TTF(
+                    Fonts::GetRobotoFontDataTTFBase85(), 
+                    14, 
+                    &config
+                );
+            }
+            
             unsigned char* pixels;
             int width, height;
             io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
+            
+            // Initialize language after font loading based on availability
+            I18N::InitializeAfterFontLoad(G::chineseFontAvailable);
 
             ImGui_ImplWin32_Init(G::windowHwnd);
             ImGui_ImplDX11_Init(G::pDevice, G::pContext);

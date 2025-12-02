@@ -64,6 +64,7 @@ namespace G {
 
     extern ImFont* defaultFont;
     extern ImFont* espFont;
+    extern bool chineseFontAvailable;
 
     extern std::queue<std::function<void(void)>> callbacks;
 }
