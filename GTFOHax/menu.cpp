@@ -165,64 +165,86 @@ void RenderTabPlayer()
 
 void RenderAgentESPSection(ESP::AgentESPSection& section)
 {
-    ImGui::Checkbox((std::string(I18N::T("esp_enabled")) + "##EnemyCheckbox" + section.type).c_str(), &section.show);
+    // Store concatenated strings in local variables to avoid use-after-free with temporaries
+    const std::string& type = section.type;
+    
+    std::string enabledLabel = std::string(I18N::T("esp_enabled")) + "##EnemyCheckbox" + type;
+    ImGui::Checkbox(enabledLabel.c_str(), &section.show);
 
     if (ImGui::TreeNode(I18N::T("esp_boxes")))
     {
-        ImGui::Checkbox((std::string(I18N::T("esp_2d_boxes")) + "##Enemy" + section.type).c_str(), &section.showBoxes);
+        std::string boxesLabel = std::string(I18N::T("esp_2d_boxes")) + "##Enemy" + type;
+        std::string boxesColorId = "##EnemyBoxesColor" + type;
+        ImGui::Checkbox(boxesLabel.c_str(), &section.showBoxes);
         ImGui::SameLine();
-        ImGui::ColorEdit4(("##EnemyBoxesColor" + section.type).c_str(), (float*)&section.boxesColor, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+        ImGui::ColorEdit4(boxesColorId.c_str(), (float*)&section.boxesColor, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
         section.boxesOutlineColor.w = section.boxesColor.w;
 
-        ImGui::Checkbox((std::string(I18N::T("esp_healthbar")) + "##Enemy" + section.type).c_str(), &section.showHealthBar);
+        std::string healthBarLabel = std::string(I18N::T("esp_healthbar")) + "##Enemy" + type;
+        std::string healthBarThicknessId = "##SliderEnemyHealthBarThickness" + type;
+        ImGui::Checkbox(healthBarLabel.c_str(), &section.showHealthBar);
         ImGui::Text(I18N::T("esp_bar_thickness"));
         ImGui::PushItemWidth(-21);
-        ImGui::SliderInt(("##SliderEnemyHealthBarThickness" + section.type).c_str(), &section.healthBarThickness, 1, 20);
+        ImGui::SliderInt(healthBarThicknessId.c_str(), &section.healthBarThickness, 1, 20);
 
-        ImGui::Checkbox((std::string(I18N::T("esp_healthbar_text")) + "##Enemy" + section.type).c_str(), &section.healthBarText);
+        std::string healthBarTextLabel = std::string(I18N::T("esp_healthbar_text")) + "##Enemy" + type;
+        std::string healthBarTextColorId = "##EnemyHealthBarTextColor" + type;
+        std::string healthBarFullTextLabel = std::string(I18N::T("esp_healthbar_full_text")) + "##Enemy" + type;
+        ImGui::Checkbox(healthBarTextLabel.c_str(), &section.healthBarText);
         ImGui::SameLine();
-        ImGui::ColorEdit4(("##EnemyHealthBarTextColor" + section.type).c_str(), (float*)&section.healthBarTextColor, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+        ImGui::ColorEdit4(healthBarTextColorId.c_str(), (float*)&section.healthBarTextColor, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
         section.healthBarTextOutlineColor.w = section.healthBarTextColor.w;
-        ImGui::Checkbox((std::string(I18N::T("esp_healthbar_full_text")) + "##Enemy" + section.type).c_str(), &section.healthBarTextFull);
+        ImGui::Checkbox(healthBarFullTextLabel.c_str(), &section.healthBarTextFull);
         
         ImGui::TreePop();
     }
 
     if (ImGui::TreeNode(I18N::T("esp_enemy_info")))
     {
-        ImGui::Checkbox((std::string(I18N::T("esp_enabled")) + "##EnemyInfo" + section.type).c_str(), &section.showInfo);
+        std::string infoEnabledLabel = std::string(I18N::T("esp_enabled")) + "##EnemyInfo" + type;
+        std::string textColorId = "##EnemyTextColor" + type;
+        ImGui::Checkbox(infoEnabledLabel.c_str(), &section.showInfo);
         ImGui::SameLine();
-        ImGui::ColorEdit4(("##EnemyTextColor" + section.type).c_str(), (float*)&section.textColor, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+        ImGui::ColorEdit4(textColorId.c_str(), (float*)&section.textColor, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
         section.textOutlineColor.w = section.textColor.w;
                 
-        ImGui::Checkbox((std::string(I18N::T("esp_name")) + "##EnemyName" + section.type).c_str(), &section.showName);
-        ImGui::Checkbox((std::string(I18N::T("esp_type")) + "##EnemyType" + section.type).c_str(), &section.showType);
-        ImGui::Checkbox((std::string(I18N::T("esp_health")) + "##EnemyHealth" + section.type).c_str(), &section.showHealth);
-        ImGui::Checkbox((std::string(I18N::T("esp_distance")) + "##EnemyDistance" + section.type).c_str(), &section.showDistance);
+        std::string nameLabel = std::string(I18N::T("esp_name")) + "##EnemyName" + type;
+        std::string typeLabel = std::string(I18N::T("esp_type")) + "##EnemyType" + type;
+        std::string healthLabel = std::string(I18N::T("esp_health")) + "##EnemyHealth" + type;
+        std::string distanceLabel = std::string(I18N::T("esp_distance")) + "##EnemyDistance" + type;
+        ImGui::Checkbox(nameLabel.c_str(), &section.showName);
+        ImGui::Checkbox(typeLabel.c_str(), &section.showType);
+        ImGui::Checkbox(healthLabel.c_str(), &section.showHealth);
+        ImGui::Checkbox(distanceLabel.c_str(), &section.showDistance);
 
         ImGui::TreePop();
     }
 
     if (ImGui::TreeNode(I18N::T("esp_skeleton")))
     {
-        ImGui::Checkbox((std::string(I18N::T("esp_enabled")) + "##EnemySkeleton" + section.type).c_str(), &section.showSkeleton);
+        std::string skeletonEnabledLabel = std::string(I18N::T("esp_enabled")) + "##EnemySkeleton" + type;
+        std::string skeletonColorId = "##EnemySkeletonColor" + type;
+        std::string skeletonDistanceId = "##SliderEnemySkeletonDistance" + type;
+        std::string skeletonThicknessId = "##SliderEnemySkeletonThickness" + type;
+        ImGui::Checkbox(skeletonEnabledLabel.c_str(), &section.showSkeleton);
         ImGui::SameLine();
-        ImGui::ColorEdit4(("##EnemySkeletonColor" + section.type).c_str(), (float*)&section.skeletonColor, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+        ImGui::ColorEdit4(skeletonColorId.c_str(), (float*)&section.skeletonColor, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
 
         ImGui::Text(I18N::T("esp_render_distance"));
         ImGui::PushItemWidth(-21);
-        ImGui::SliderInt(("##SliderEnemySkeletonDistance" + section.type).c_str(), &section.skeletonRenderDistance, 0, 500);
+        ImGui::SliderInt(skeletonDistanceId.c_str(), &section.skeletonRenderDistance, 0, 500);
 
         ImGui::Text(I18N::T("esp_line_thickness"));
         ImGui::PushItemWidth(-21);
-        ImGui::SliderFloat(("##SliderEnemySkeletonThickness" + section.type).c_str(), &section.skeletonThickness, 0.0f, 10.0f);
+        ImGui::SliderFloat(skeletonThicknessId.c_str(), &section.skeletonThickness, 0.0f, 10.0f);
 
         ImGui::TreePop();
     }
 
     ImGui::Text(I18N::T("esp_render_distance"));
     ImGui::PushItemWidth(-21);
-    ImGui::SliderInt(("##SliderEnemyDistance" + section.type).c_str(), &section.renderDistance, 0, 500);
+    std::string renderDistanceId = "##SliderEnemyDistance" + type;
+    ImGui::SliderInt(renderDistanceId.c_str(), &section.renderDistance, 0, 500);
 }
 
 void RenderTabESP()
@@ -302,10 +324,17 @@ void RenderTabAimbot()
     ImGui::Hotkey("", Aimbot::settings.holdKey);
     ImGui::PopID();
 
-    ImGui::Checkbox((std::string(I18N::T("aimbot_silent_aim")) + "##EnemyAimbot").c_str(), &Aimbot::settings.silentAim);
-    ImGui::Checkbox((std::string(I18N::T("aimbot_magic_bullet")) + "##EnemyAimbot").c_str(), &Aimbot::settings.magicBullet);
-    ImGui::Checkbox((std::string(I18N::T("aimbot_visible_only")) + "##EnemyAimbot").c_str(), &Aimbot::settings.visibleOnly);
-    ImGui::Checkbox((std::string(I18N::T("aimbot_aim_at_armor")) + "##EnemyAimbot").c_str(), &Aimbot::settings.aimAtArmor);
+    // Store concatenated strings in local variables to avoid use-after-free with temporaries
+    std::string silentAimLabel = std::string(I18N::T("aimbot_silent_aim")) + "##EnemyAimbot";
+    std::string magicBulletLabel = std::string(I18N::T("aimbot_magic_bullet")) + "##EnemyAimbot";
+    std::string visibleOnlyLabel = std::string(I18N::T("aimbot_visible_only")) + "##EnemyAimbot";
+    std::string aimAtArmorLabel = std::string(I18N::T("aimbot_aim_at_armor")) + "##EnemyAimbot";
+    std::string renderFovLabel = std::string(I18N::T("aimbot_render_fov")) + "##EnemyAimbot";
+    
+    ImGui::Checkbox(silentAimLabel.c_str(), &Aimbot::settings.silentAim);
+    ImGui::Checkbox(magicBulletLabel.c_str(), &Aimbot::settings.magicBullet);
+    ImGui::Checkbox(visibleOnlyLabel.c_str(), &Aimbot::settings.visibleOnly);
+    ImGui::Checkbox(aimAtArmorLabel.c_str(), &Aimbot::settings.aimAtArmor);
     
     ImGui::Text(I18N::T("aimbot_aim_distance"));
     ImGui::SameLine();
@@ -317,7 +346,7 @@ void RenderTabAimbot()
     ImGui::PushItemWidth(-25);
     ImGui::SliderFloat("##SmoothingSliderEnemyAimbot", &Aimbot::settings.smoothing, 0.0f, 0.999f);
     
-    ImGui::Checkbox((std::string(I18N::T("aimbot_render_fov")) + "##EnemyAimbot").c_str(), &Aimbot::settings.renderFOV);
+    ImGui::Checkbox(renderFovLabel.c_str(), &Aimbot::settings.renderFOV);
     ImGui::SameLine();
     ImGui::PushItemWidth(-25);
     ImGui::SliderFloat("##SliderEnemyAimbotFOV", &Aimbot::settings.aimFov, 0.0f, 360.0f);
@@ -356,7 +385,9 @@ void RenderTabMisc()
     for (int i = 0; i < 4; i++) {
         cornerItems[i] = GetCorner(i);
     }
-    ImGui::Combo((std::string(I18N::T("misc_location")) + "##Watermark").c_str(), &G::watermarkCorner, cornerItems, 4);
+    // Store concatenated string in local variable to avoid use-after-free with temporaries
+    std::string locationLabel = std::string(I18N::T("misc_location")) + "##Watermark";
+    ImGui::Combo(locationLabel.c_str(), &G::watermarkCorner, cornerItems, 4);
 
     // Language selection
     ImGui::Separator();
