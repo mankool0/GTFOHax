@@ -142,7 +142,12 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int) {
     }
 
     // Inject
-    if (InjectDLL(*pid, *dllPath)) {
+    bool success = InjectDLL(*pid, *dllPath);
+    
+    // Cleanup temp DLL file
+    DeleteFileW(dllPath->c_str());
+    
+    if (success) {
         MessageBoxW(nullptr, L"Injection successful!", 
                    L"Success", MB_OK | MB_ICONINFORMATION);
         return 0;

@@ -13,6 +13,7 @@
 #include "hacks/enemy.h"
 #include "utils/math.h"
 #include "hacks/aimbot.h"
+#include "i18n/i18n.h"
 
 #include "MinHook.h"
 
@@ -764,7 +765,7 @@ HRESULT __stdcall Hooks::hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval
                 0x31F0, 0x31FF, // Katakana Phonetic Extensions
                 0xFF00, 0xFFEF, // Half-width characters
                 0x4e00, 0x9FAF, // CJK Ideograms
-                0,
+                0, 0 // Terminator (must be a zero pair)
             };
             
             // Try multiple Chinese fonts in order of preference
