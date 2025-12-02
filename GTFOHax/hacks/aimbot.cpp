@@ -99,29 +99,49 @@ namespace Aimbot
     // This is called at the moment of firing to get the current position
     app::Vector3 GetCurrentTargetPosition()
     {
-        // Safety check: verify the enemy is still alive before accessing its data
-        if (targetEnemy != nullptr)
+        if (targetEnemy == nullptr)
+            return silentAimBone;
+        
+        // CRITICAL: Validate that targetEnemy still exists in the enemy list
+        // The pointer could be dangling if the enemy was deleted between RunAimbot() and firing
+        bool enemyStillValid = false;
+        G::enemyAimMtx.lock();
+        for (const auto& enemyInfo : Enemy::enemiesAimbot)
         {
-            auto enemyDamage = reinterpret_cast<app::Dam_SyncedDamageBase*>(targetEnemy->fields.Damage);
-            if (enemyDamage == nullptr || enemyDamage->fields._Health_k__BackingField <= 0.0f)
+            if (enemyInfo->enemyAgent == targetEnemy)
             {
-                // Enemy is dead or invalid, use cached position
-                return silentAimBone;
-            }
-            
-            if (targetLimb != nullptr)
-            {
-                // Get the current position of the damage limb
-                return app::Dam_EnemyDamageLimb_get_DamageTargetPos(targetLimb, NULL);
-            }
-            else
-            {
-                // Fallback to enemy position if no specific limb
-                return app::EnemyAgent_get_Position(targetEnemy, NULL);
+                enemyStillValid = true;
+                break;
             }
         }
-        // If nothing available, return the cached position
-        return silentAimBone;
+        G::enemyAimMtx.unlock();
+        
+        if (!enemyStillValid)
+        {
+            // Enemy no longer exists, clear the pointer and use cached position
+            targetEnemy = nullptr;
+            targetLimb = nullptr;
+            return silentAimBone;
+        }
+        
+        // Now safe to access targetEnemy
+        auto enemyDamage = reinterpret_cast<app::Dam_SyncedDamageBase*>(targetEnemy->fields.Damage);
+        if (enemyDamage == nullptr || enemyDamage->fields._Health_k__BackingField <= 0.0f)
+        {
+            // Enemy is dead or invalid, use cached position
+            return silentAimBone;
+        }
+        
+        if (targetLimb != nullptr)
+        {
+            // Get the current position of the damage limb
+            return app::Dam_EnemyDamageLimb_get_DamageTargetPos(targetLimb, NULL);
+        }
+        else
+        {
+            // Fallback to enemy position if no specific limb
+            return app::EnemyAgent_get_Position(targetEnemy, NULL);
+        }
     }
 
     void RunAimbot()
