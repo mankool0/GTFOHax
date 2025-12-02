@@ -93,6 +93,7 @@ namespace Enemy
                     bone.destroyed = limb->fields._IsDestroyed_k__BackingField;
                     bone.limbType = limb->fields.m_type;
                     bone.health = limb->fields.m_health;
+                    bone.limbPtr = limb;  // Store limb pointer for real-time position update
                     damageableBonesVec.push_back(bone);
                 }
 

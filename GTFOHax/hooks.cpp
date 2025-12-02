@@ -347,11 +347,44 @@ bool Hooks::hkWeapon_CastWeaponRay_1(app::Transform* alignTransform, app::Weapon
     {
         if (Aimbot::settings.magicBullet)
         {
-            originPos = Aimbot::silentAimBone;
+            // Get the real-time position of the target to fix miss on fast-moving enemies
+            app::Vector3 currentTargetPos = Aimbot::GetCurrentTargetPosition();
+            originPos = currentTargetPos;
             originPos.y += 0.5f;
             (*weaponRayData)->fields.fireDir.x = 0.0f;
             (*weaponRayData)->fields.fireDir.y = -1.0f;
             (*weaponRayData)->fields.fireDir.z = 0.0f;
+            
+            // Record hit ghost effect - capture current skeleton positions
+            if (Aimbot::settings.hitGhostEnabled && Aimbot::targetEnemy != nullptr)
+            {
+                G::enemyAimMtx.lock();
+                for (const auto& enemyInfo : Enemy::enemiesAimbot)
+                {
+                    if (enemyInfo->enemyAgent == Aimbot::targetEnemy && !enemyInfo->skeletonBones.empty())
+                    {
+                        // Get real-time skeleton positions
+                        std::map<app::HumanBodyBones__Enum, Enemy::Bone> currentBones;
+                        for (const auto& boneType : Enemy::WantedBones)
+                        {
+                            auto boneTransform = app::Animator_GetBoneTransform(
+                                Aimbot::targetEnemy->fields.Anim, boneType, NULL);
+                            if (boneTransform != nullptr)
+                            {
+                                Enemy::Bone bone;
+                                bone.position = app::Transform_get_position(boneTransform, NULL);
+                                currentBones[boneType] = bone;
+                            }
+                        }
+                        if (!currentBones.empty())
+                        {
+                            Aimbot::AddHitGhost(currentBones);
+                        }
+                        break;
+                    }
+                }
+                G::enemyAimMtx.unlock();
+            }
         }
         else
         {

@@ -177,6 +177,13 @@ namespace Aimbot
             {"HoldKey", value.holdKey},
             {"SilentAim", value.silentAim},
             {"MagicBullet", value.magicBullet},
+            {"HitGhostEnabled", value.hitGhostEnabled},
+            {"HitGhostDuration", value.hitGhostDuration},
+            {"HitGhostColor", value.hitGhostColor},
+            {"HitGhostThickness", value.hitGhostThickness},
+            {"TargetHighlight", value.targetHighlight},
+            {"TargetHighlightColor", value.targetHighlightColor},
+            {"TargetHighlightMarker", value.targetHighlightMarker},
             {"VisibleOnly", value.visibleOnly},
             {"AimAtArmor", value.aimAtArmor},
             {"MaxDistance", value.maxDistance},
@@ -195,6 +202,13 @@ namespace Aimbot
         JSON_GET("HoldKey", value.holdKey);
         JSON_GET("SilentAim", value.silentAim);
         JSON_GET("MagicBullet", value.magicBullet);
+        JSON_GET("HitGhostEnabled", value.hitGhostEnabled);
+        JSON_GET("HitGhostDuration", value.hitGhostDuration);
+        JSON_GET("HitGhostColor", value.hitGhostColor);
+        JSON_GET("HitGhostThickness", value.hitGhostThickness);
+        JSON_GET("TargetHighlight", value.targetHighlight);
+        JSON_GET("TargetHighlightColor", value.targetHighlightColor);
+        JSON_GET("TargetHighlightMarker", value.targetHighlightMarker);
         JSON_GET("VisibleOnly", value.visibleOnly);
         JSON_GET("AimAtArmor", value.aimAtArmor);
         JSON_GET("MaxDistance", value.maxDistance);

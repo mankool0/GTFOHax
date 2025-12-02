@@ -333,6 +333,47 @@ void RenderTabAimbot()
     
     ImGui::Checkbox(silentAimLabel.c_str(), &Aimbot::settings.silentAim);
     ImGui::Checkbox(magicBulletLabel.c_str(), &Aimbot::settings.magicBullet);
+    
+    // Hit Ghost settings (only show when magic bullet is enabled)
+    if (Aimbot::settings.magicBullet)
+    {
+        ImGui::Indent(20.0f);
+        std::string hitGhostLabel = std::string(I18N::T("aimbot_hit_ghost")) + "##EnemyAimbot";
+        ImGui::Checkbox(hitGhostLabel.c_str(), &Aimbot::settings.hitGhostEnabled);
+        if (Aimbot::settings.hitGhostEnabled)
+        {
+            ImGui::SameLine();
+            ImGui::ColorEdit4("##HitGhostColor", (float*)&Aimbot::settings.hitGhostColor, 
+                ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+            
+            ImGui::Text(I18N::T("aimbot_hit_ghost_duration"));
+            ImGui::SameLine();
+            ImGui::PushItemWidth(100);
+            ImGui::SliderFloat("##HitGhostDuration", &Aimbot::settings.hitGhostDuration, 0.1f, 3.0f, "%.2fs");
+            ImGui::PopItemWidth();
+            
+            ImGui::Text(I18N::T("aimbot_hit_ghost_thickness"));
+            ImGui::SameLine();
+            ImGui::PushItemWidth(100);
+            ImGui::SliderFloat("##HitGhostThickness", &Aimbot::settings.hitGhostThickness, 0.5f, 5.0f);
+            ImGui::PopItemWidth();
+        }
+        ImGui::Unindent(20.0f);
+    }
+    
+    // Target highlight settings (always visible when aimbot enabled)
+    std::string targetHighlightLabel = std::string(I18N::T("aimbot_target_highlight")) + "##EnemyAimbot";
+    ImGui::Checkbox(targetHighlightLabel.c_str(), &Aimbot::settings.targetHighlight);
+    if (Aimbot::settings.targetHighlight)
+    {
+        ImGui::SameLine();
+        ImGui::ColorEdit4("##TargetHighlightColor", (float*)&Aimbot::settings.targetHighlightColor, 
+            ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+        ImGui::SameLine();
+        std::string targetMarkerLabel = std::string(I18N::T("aimbot_target_marker")) + "##EnemyAimbot";
+        ImGui::Checkbox(targetMarkerLabel.c_str(), &Aimbot::settings.targetHighlightMarker);
+    }
+    
     ImGui::Checkbox(visibleOnlyLabel.c_str(), &Aimbot::settings.visibleOnly);
     ImGui::Checkbox(aimAtArmorLabel.c_str(), &Aimbot::settings.aimAtArmor);
     
@@ -755,6 +796,11 @@ void RenderEnemyAgent(Enemy::EnemyInfo* enemyInfo, ESP::AgentESPSection* espSett
     if (enemyInfo->distance > espSettings->renderDistance)
         return;
 
+    // Check if this enemy is the current aimbot target
+    bool isLockedTarget = Aimbot::settings.targetHighlight && 
+                          Aimbot::settings.toggleKey.isToggled() &&
+                          Aimbot::IsLockedTarget(enemyInfo->enemyAgent);
+
     Enemy::Bone headBone = enemyInfo->useFallback ? enemyInfo->fallbackBone : enemyInfo->skeletonBones[app::HumanBodyBones__Enum::Head]; // TODO: Fix map issue
     ImVec2 w2sHead;
     if (!Math::WorldToScreen(headBone.position, w2sHead))
@@ -803,9 +849,14 @@ void RenderEnemyAgent(Enemy::EnemyInfo* enemyInfo, ESP::AgentESPSection* espSett
 
     if (espSettings->showBoxes && !enemyInfo->useFallback && valid)
     {    
-        ImGui::GetBackgroundDrawList()->AddRect(ImVec2{ min.x - 1.0f, min.y - 1.0f }, ImVec2{ max.x + 1.0f, max.y + 1.0f }, ImGui::GetColorU32(espSettings->boxesOutlineColor));
-        ImGui::GetBackgroundDrawList()->AddRect(ImVec2{ min.x + 1.0f, min.y + 1.0f }, ImVec2{ max.x - 1.0f, max.y - 1.0f }, ImGui::GetColorU32(espSettings->boxesOutlineColor));
-        ImGui::GetBackgroundDrawList()->AddRect(min, max, ImGui::GetColorU32(espSettings->boxesColor));
+        // Use highlight color if this is the locked target
+        ImU32 boxColor = isLockedTarget ? ImGui::GetColorU32(Aimbot::settings.targetHighlightColor) 
+                                        : ImGui::GetColorU32(espSettings->boxesColor);
+        ImU32 outlineColor = ImGui::GetColorU32(espSettings->boxesOutlineColor);
+        
+        ImGui::GetBackgroundDrawList()->AddRect(ImVec2{ min.x - 1.0f, min.y - 1.0f }, ImVec2{ max.x + 1.0f, max.y + 1.0f }, outlineColor);
+        ImGui::GetBackgroundDrawList()->AddRect(ImVec2{ min.x + 1.0f, min.y + 1.0f }, ImVec2{ max.x - 1.0f, max.y - 1.0f }, outlineColor);
+        ImGui::GetBackgroundDrawList()->AddRect(min, max, boxColor);
     }
 
 
@@ -882,11 +933,29 @@ void RenderEnemyAgent(Enemy::EnemyInfo* enemyInfo, ESP::AgentESPSection* espSett
         float center = (min.x + max.x) / 2.0f;
         ImVec2 topCenter = { center, min.y };
         ImVec2 bottomCenter = { center, max.y };
+        
+        // Calculate text positions from top of box upward
+        float currentY = topCenter.y;
+        
         ImVec2 typeTextSize = ImVec2();
         if (espSettings->showType)
-            typeTextSize = RenderESPText(topCenter, color, outlineColor, enemyType, true, true);
+        {
+            typeTextSize = RenderESPText(ImVec2(topCenter.x, currentY), color, outlineColor, enemyType, true, true);
+            currentY -= typeTextSize.y;
+        }
         if (espSettings->showName)
-            RenderESPText(ImVec2(topCenter.x, topCenter.y - typeTextSize.y), color, outlineColor, enemyName, true, true);
+        {
+            ImVec2 nameTextSize = RenderESPText(ImVec2(topCenter.x, currentY), color, outlineColor, enemyName, true, true);
+            currentY -= nameTextSize.y;
+        }
+        
+        // Show [LOCKED] marker above everything else
+        if (isLockedTarget && Aimbot::settings.targetHighlightMarker)
+        {
+            ImU32 lockedColor = ImGui::GetColorU32(Aimbot::settings.targetHighlightColor);
+            RenderESPText(ImVec2(topCenter.x, currentY), lockedColor, outlineColor, 
+                std::string("[") + I18N::T("esp_locked") + "]", true, true);
+        }
 
 
         ImVec2 distanceTextSize = ImVec2();
@@ -967,7 +1036,10 @@ void RenderESP()
     if (ESP::worldESPToggleKey.isToggled())
         RenderWorldESP();
     if (Aimbot::settings.toggleKey.isToggled())
+    {
         RenderAimbotESP();
+        Aimbot::RenderHitGhosts();  // Render magic bullet hit ghost effects
+    }
 }
 
 void DrawMenu()

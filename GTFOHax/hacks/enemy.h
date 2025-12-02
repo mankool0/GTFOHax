@@ -13,6 +13,7 @@ namespace Enemy
         bool destroyed = false;
         app::eLimbDamageType__Enum limbType;
         float health;
+        app::Dam_EnemyDamageLimb* limbPtr = nullptr;  // Pointer to the original damage limb for real-time position
     };
 
     static const std::vector<app::HumanBodyBones__Enum> WantedBones =
