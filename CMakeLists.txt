@@ -55,6 +55,7 @@ set(GTFOHAX_SOURCES
     ${SRC_DIR}/InputUtil.cpp
     ${SRC_DIR}/hooks.cpp
     ${SRC_DIR}/menu.cpp
+    ${SRC_DIR}/i18n/i18n.cpp
 )
 
 add_subdirectory(${KIERO_DIR}/minhook)
@@ -106,6 +107,7 @@ target_include_directories(GTFOHaxDLL PRIVATE
     ${SRC_DIR}/framework
     ${SRC_DIR}/hacks
     ${SRC_DIR}/user
+    ${SRC_DIR}/i18n
     ${KIERO_DIR}/minhook/include
     ${KIERO_DIR}
     ${IMGUI_DIR}
