@@ -349,11 +349,127 @@ bool Hooks::hkWeapon_CastWeaponRay_1(app::Transform* alignTransform, app::Weapon
         {
             // Get the real-time position of the target to fix miss on fast-moving enemies
             app::Vector3 currentTargetPos = Aimbot::GetCurrentTargetPosition();
-            originPos = currentTargetPos;
-            originPos.y += 0.5f;
-            (*weaponRayData)->fields.fireDir.x = 0.0f;
-            (*weaponRayData)->fields.fireDir.y = -1.0f;
-            (*weaponRayData)->fields.fireDir.z = 0.0f;
+            float offset = Aimbot::settings.magicBulletOffset;
+            
+            // Calculate origin position and fire direction based on selected direction mode
+            switch (Aimbot::settings.magicBulletDirection)
+            {
+                case Aimbot::MagicBulletDirection::FromAbove:
+                default:
+                {
+                    // Default: shoot from above the target, downward
+                    originPos = currentTargetPos;
+                    originPos.y += offset;
+                    (*weaponRayData)->fields.fireDir.x = 0.0f;
+                    (*weaponRayData)->fields.fireDir.y = -1.0f;
+                    (*weaponRayData)->fields.fireDir.z = 0.0f;
+                    break;
+                }
+                case Aimbot::MagicBulletDirection::FromFront:
+                {
+                    // Shoot from enemy's front (based on movement direction, fallback to facing direction)
+                    if (Aimbot::targetEnemy != nullptr)
+                    {
+                        // Try to get movement direction first
+                        app::Vector3 enemyDir = Enemy::GetEnemyMovementDirection(Aimbot::targetEnemy);
+                        bool hasMovementDir = (enemyDir.x != 0.0f || enemyDir.z != 0.0f);
+                        
+                        // Fallback to facing direction if not moving
+                        if (!hasMovementDir)
+                        {
+                            app::Transform* enemyTransform = app::Component_1_get_transform(
+                                reinterpret_cast<app::Component_1*>(Aimbot::targetEnemy), NULL);
+                            if (enemyTransform != nullptr)
+                            {
+                                enemyDir = app::Transform_get_forward(enemyTransform, NULL);
+                                float len = sqrtf(enemyDir.x * enemyDir.x + enemyDir.z * enemyDir.z);
+                                if (len > 0.001f)
+                                {
+                                    enemyDir.x /= len;
+                                    enemyDir.z /= len;
+                                }
+                            }
+                        }
+                        
+                        // Origin is in front of enemy (where enemy is moving/facing)
+                        originPos.x = currentTargetPos.x + enemyDir.x * offset;
+                        originPos.y = currentTargetPos.y;
+                        originPos.z = currentTargetPos.z + enemyDir.z * offset;
+                        // Fire direction is opposite (shooting into the enemy's face)
+                        (*weaponRayData)->fields.fireDir.x = -enemyDir.x;
+                        (*weaponRayData)->fields.fireDir.y = 0.0f;
+                        (*weaponRayData)->fields.fireDir.z = -enemyDir.z;
+                    }
+                    break;
+                }
+                case Aimbot::MagicBulletDirection::FromBehind:
+                {
+                    // Shoot from enemy's back (opposite to movement direction, fallback to facing direction)
+                    if (Aimbot::targetEnemy != nullptr)
+                    {
+                        // Try to get movement direction first
+                        app::Vector3 enemyDir = Enemy::GetEnemyMovementDirection(Aimbot::targetEnemy);
+                        bool hasMovementDir = (enemyDir.x != 0.0f || enemyDir.z != 0.0f);
+                        
+                        // Fallback to facing direction if not moving
+                        if (!hasMovementDir)
+                        {
+                            app::Transform* enemyTransform = app::Component_1_get_transform(
+                                reinterpret_cast<app::Component_1*>(Aimbot::targetEnemy), NULL);
+                            if (enemyTransform != nullptr)
+                            {
+                                enemyDir = app::Transform_get_forward(enemyTransform, NULL);
+                                float len = sqrtf(enemyDir.x * enemyDir.x + enemyDir.z * enemyDir.z);
+                                if (len > 0.001f)
+                                {
+                                    enemyDir.x /= len;
+                                    enemyDir.z /= len;
+                                }
+                            }
+                        }
+                        
+                        // Origin is behind enemy (opposite to where enemy is moving/facing)
+                        originPos.x = currentTargetPos.x - enemyDir.x * offset;
+                        originPos.y = currentTargetPos.y;
+                        originPos.z = currentTargetPos.z - enemyDir.z * offset;
+                        // Fire direction is same as enemy's direction (shooting into enemy's back)
+                        (*weaponRayData)->fields.fireDir.x = enemyDir.x;
+                        (*weaponRayData)->fields.fireDir.y = 0.0f;
+                        (*weaponRayData)->fields.fireDir.z = enemyDir.z;
+                    }
+                    break;
+                }
+                case Aimbot::MagicBulletDirection::FromPlayer:
+                {
+                    // Shoot from player's direction toward enemy
+                    if (G::localPlayer != nullptr)
+                    {
+                        app::Vector3 playerEyePos = G::localPlayer->fields.m_eyePosition;
+                        app::Vector3 dirToEnemy = Math::Vector3Sub(currentTargetPos, playerEyePos);
+                        dirToEnemy = app::Vector3_Normalize(dirToEnemy, NULL);
+                        // Origin is offset distance away from target, toward player
+                        originPos.x = currentTargetPos.x - dirToEnemy.x * offset;
+                        originPos.y = currentTargetPos.y - dirToEnemy.y * offset;
+                        originPos.z = currentTargetPos.z - dirToEnemy.z * offset;
+                        // Fire direction is toward the enemy
+                        (*weaponRayData)->fields.fireDir = dirToEnemy;
+                    }
+                    break;
+                }
+            }
+            
+            // Record bullet ray using actual shooting parameters
+            if (Aimbot::settings.bulletRayEnabled)
+            {
+                // Use actual fireDir to calculate ray endpoint
+                app::Vector3 fireDir = (*weaponRayData)->fields.fireDir;
+                float rayLength = offset * 2.0f;  // Length of visible ray (covers the offset distance)
+                app::Vector3 rayEnd;
+                rayEnd.x = originPos.x + fireDir.x * rayLength;
+                rayEnd.y = originPos.y + fireDir.y * rayLength;
+                rayEnd.z = originPos.z + fireDir.z * rayLength;
+                Aimbot::AddBulletRay(originPos, rayEnd);
+            }
             
             // Record hit ghost effect - capture current skeleton positions
             if (Aimbot::settings.hitGhostEnabled && Aimbot::targetEnemy != nullptr)

@@ -334,10 +334,26 @@ void RenderTabAimbot()
     ImGui::Checkbox(silentAimLabel.c_str(), &Aimbot::settings.silentAim);
     ImGui::Checkbox(magicBulletLabel.c_str(), &Aimbot::settings.magicBullet);
     
-    // Hit Ghost settings (only show when magic bullet is enabled)
+    // Magic bullet settings (only show when magic bullet is enabled)
     if (Aimbot::settings.magicBullet)
     {
         ImGui::Indent(20.0f);
+        
+        // Shooting direction selection
+        ImGui::Text(I18N::T("aimbot_magic_bullet_direction"));
+        ImGui::SameLine();
+        int* magicBulletDir = reinterpret_cast<int*>(&Aimbot::settings.magicBulletDirection);
+        ImGui::PushItemWidth(150);
+        ImGui::Combo("##MagicBulletDirection", magicBulletDir, Aimbot::MagicBulletDirItems, IM_ARRAYSIZE(Aimbot::MagicBulletDirItems));
+        ImGui::PopItemWidth();
+        
+        // Offset distance
+        ImGui::Text(I18N::T("aimbot_magic_bullet_offset"));
+        ImGui::SameLine();
+        ImGui::PushItemWidth(100);
+        ImGui::SliderFloat("##MagicBulletOffset", &Aimbot::settings.magicBulletOffset, 0.1f, 3.0f, "%.1fm");
+        ImGui::PopItemWidth();
+        
         std::string hitGhostLabel = std::string(I18N::T("aimbot_hit_ghost")) + "##EnemyAimbot";
         ImGui::Checkbox(hitGhostLabel.c_str(), &Aimbot::settings.hitGhostEnabled);
         if (Aimbot::settings.hitGhostEnabled)
@@ -356,6 +372,28 @@ void RenderTabAimbot()
             ImGui::SameLine();
             ImGui::PushItemWidth(100);
             ImGui::SliderFloat("##HitGhostThickness", &Aimbot::settings.hitGhostThickness, 0.5f, 5.0f);
+            ImGui::PopItemWidth();
+        }
+        
+        // Bullet ray settings
+        std::string bulletRayLabel = std::string(I18N::T("aimbot_bullet_ray")) + "##EnemyAimbot";
+        ImGui::Checkbox(bulletRayLabel.c_str(), &Aimbot::settings.bulletRayEnabled);
+        if (Aimbot::settings.bulletRayEnabled)
+        {
+            ImGui::SameLine();
+            ImGui::ColorEdit4("##BulletRayColor", (float*)&Aimbot::settings.bulletRayColor, 
+                ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+            
+            ImGui::Text(I18N::T("aimbot_bullet_ray_duration"));
+            ImGui::SameLine();
+            ImGui::PushItemWidth(100);
+            ImGui::SliderFloat("##BulletRayDuration", &Aimbot::settings.bulletRayDuration, 0.1f, 3.0f, "%.2fs");
+            ImGui::PopItemWidth();
+            
+            ImGui::Text(I18N::T("aimbot_bullet_ray_thickness"));
+            ImGui::SameLine();
+            ImGui::PushItemWidth(100);
+            ImGui::SliderFloat("##BulletRayThickness", &Aimbot::settings.bulletRayThickness, 0.5f, 5.0f);
             ImGui::PopItemWidth();
         }
         ImGui::Unindent(20.0f);
@@ -1038,7 +1076,8 @@ void RenderESP()
     if (Aimbot::settings.toggleKey.isToggled())
     {
         RenderAimbotESP();
-        Aimbot::RenderHitGhosts();  // Render magic bullet hit ghost effects
+        Aimbot::RenderHitGhosts();   // Render magic bullet hit ghost effects
+        Aimbot::RenderBulletRays();  // Render magic bullet trajectory rays
     }
 }
 

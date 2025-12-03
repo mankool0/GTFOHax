@@ -177,10 +177,16 @@ namespace Aimbot
             {"HoldKey", value.holdKey},
             {"SilentAim", value.silentAim},
             {"MagicBullet", value.magicBullet},
+            {"MagicBulletDirection", value.magicBulletDirection},
+            {"MagicBulletOffset", value.magicBulletOffset},
             {"HitGhostEnabled", value.hitGhostEnabled},
             {"HitGhostDuration", value.hitGhostDuration},
             {"HitGhostColor", value.hitGhostColor},
             {"HitGhostThickness", value.hitGhostThickness},
+            {"BulletRayEnabled", value.bulletRayEnabled},
+            {"BulletRayDuration", value.bulletRayDuration},
+            {"BulletRayColor", value.bulletRayColor},
+            {"BulletRayThickness", value.bulletRayThickness},
             {"TargetHighlight", value.targetHighlight},
             {"TargetHighlightColor", value.targetHighlightColor},
             {"TargetHighlightMarker", value.targetHighlightMarker},
@@ -202,10 +208,16 @@ namespace Aimbot
         JSON_GET("HoldKey", value.holdKey);
         JSON_GET("SilentAim", value.silentAim);
         JSON_GET("MagicBullet", value.magicBullet);
+        JSON_GET("MagicBulletDirection", value.magicBulletDirection);
+        JSON_GET("MagicBulletOffset", value.magicBulletOffset);
         JSON_GET("HitGhostEnabled", value.hitGhostEnabled);
         JSON_GET("HitGhostDuration", value.hitGhostDuration);
         JSON_GET("HitGhostColor", value.hitGhostColor);
         JSON_GET("HitGhostThickness", value.hitGhostThickness);
+        JSON_GET("BulletRayEnabled", value.bulletRayEnabled);
+        JSON_GET("BulletRayDuration", value.bulletRayDuration);
+        JSON_GET("BulletRayColor", value.bulletRayColor);
+        JSON_GET("BulletRayThickness", value.bulletRayThickness);
         JSON_GET("TargetHighlight", value.targetHighlight);
         JSON_GET("TargetHighlightColor", value.targetHighlightColor);
         JSON_GET("TargetHighlightMarker", value.targetHighlightMarker);

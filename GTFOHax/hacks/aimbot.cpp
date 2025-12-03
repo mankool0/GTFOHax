@@ -17,6 +17,10 @@ namespace Aimbot
     std::vector<HitGhost> hitGhosts;
     std::mutex hitGhostMtx;
     
+    // Bullet ray storage
+    std::vector<BulletRay> bulletRays;
+    std::mutex bulletRayMtx;
+    
     void AddHitGhost(const std::map<app::HumanBodyBones__Enum, Enemy::Bone>& bones)
     {
         if (!settings.hitGhostEnabled || bones.empty())
@@ -91,6 +95,65 @@ namespace Aimbot
                     prevPos = curPos;
                     hasPrev = true;
                 }
+            }
+        }
+    }
+    
+    void AddBulletRay(app::Vector3 startPos, app::Vector3 endPos)
+    {
+        if (!settings.bulletRayEnabled)
+            return;
+            
+        std::lock_guard<std::mutex> lock(bulletRayMtx);
+        bulletRays.emplace_back(startPos, endPos, settings.bulletRayDuration);
+        
+        // Limit max number of rays to prevent memory issues
+        if (bulletRays.size() > 50)
+        {
+            bulletRays.erase(bulletRays.begin());
+        }
+    }
+    
+    void CleanupBulletRays()
+    {
+        std::lock_guard<std::mutex> lock(bulletRayMtx);
+        bulletRays.erase(
+            std::remove_if(bulletRays.begin(), bulletRays.end(),
+                [](const BulletRay& ray) { return ray.IsExpired(); }),
+            bulletRays.end()
+        );
+    }
+    
+    void RenderBulletRays()
+    {
+        if (!settings.bulletRayEnabled || !settings.magicBullet)
+            return;
+            
+        CleanupBulletRays();
+        
+        std::lock_guard<std::mutex> lock(bulletRayMtx);
+        
+        for (const BulletRay& ray : bulletRays)
+        {
+            float alpha = ray.GetAlpha();
+            if (alpha <= 0.0f)
+                continue;
+                
+            // Create color with fading alpha
+            ImVec4 color = settings.bulletRayColor;
+            color.w *= alpha;
+            ImU32 colorU32 = ImGui::GetColorU32(color);
+            
+            // Convert world positions to screen positions and draw line
+            // Need to copy to non-const variables for WorldToScreen
+            app::Vector3 startPos = ray.startPos;
+            app::Vector3 endPos = ray.endPos;
+            ImVec2 screenStart, screenEnd;
+            if (Math::WorldToScreen(startPos, screenStart) && 
+                Math::WorldToScreen(endPos, screenEnd))
+            {
+                ImGui::GetBackgroundDrawList()->AddLine(
+                    screenStart, screenEnd, colorU32, settings.bulletRayThickness);
             }
         }
     }
