@@ -160,50 +160,64 @@ namespace Aimbot
 
     // Get the real-time position of the target bone for magic bullet
     // This is called at the moment of firing to get the current position
+    // Thread-safe: all pointer access happens while holding the lock
     app::Vector3 GetCurrentTargetPosition()
     {
-        if (targetEnemy == nullptr)
-            return silentAimBone;
+        // Take a snapshot of the target pointers under lock protection
+        app::EnemyAgent* localTargetEnemy = nullptr;
+        app::Dam_EnemyDamageLimb* localTargetLimb = nullptr;
+        app::Vector3 cachedPos = silentAimBone;
         
-        // CRITICAL: Validate that targetEnemy still exists in the enemy list
-        // The pointer could be dangling if the enemy was deleted between RunAimbot() and firing
-        bool enemyStillValid = false;
-        G::enemyAimMtx.lock();
-        for (const auto& enemyInfo : Enemy::enemiesAimbot)
         {
-            if (enemyInfo->enemyAgent == targetEnemy)
+            std::lock_guard<std::mutex> lock(G::enemyAimMtx);
+            
+            if (targetEnemy == nullptr)
+                return silentAimBone;
+            
+            // Validate that targetEnemy still exists in the enemy list
+            bool enemyStillValid = false;
+            for (const auto& enemyInfo : Enemy::enemiesAimbot)
             {
-                enemyStillValid = true;
-                break;
+                if (enemyInfo->enemyAgent == targetEnemy)
+                {
+                    enemyStillValid = true;
+                    break;
+                }
             }
-        }
-        G::enemyAimMtx.unlock();
-        
-        if (!enemyStillValid)
-        {
-            // Enemy no longer exists, clear the pointer and use cached position
-            targetEnemy = nullptr;
-            targetLimb = nullptr;
-            return silentAimBone;
-        }
-        
-        // Now safe to access targetEnemy
-        auto enemyDamage = reinterpret_cast<app::Dam_SyncedDamageBase*>(targetEnemy->fields.Damage);
-        if (enemyDamage == nullptr || enemyDamage->fields._Health_k__BackingField <= 0.0f)
-        {
-            // Enemy is dead or invalid, use cached position
-            return silentAimBone;
-        }
-        
-        if (targetLimb != nullptr)
-        {
-            // Get the current position of the damage limb
-            return app::Dam_EnemyDamageLimb_get_DamageTargetPos(targetLimb, NULL);
-        }
-        else
-        {
-            // Fallback to enemy position if no specific limb
-            return app::EnemyAgent_get_Position(targetEnemy, NULL);
+            
+            if (!enemyStillValid)
+            {
+                // Enemy no longer exists, clear the pointer and use cached position
+                targetEnemy = nullptr;
+                targetLimb = nullptr;
+                return silentAimBone;
+            }
+            
+            // Copy pointers while still holding lock - the enemy list guarantees
+            // these pointers are valid as long as we hold the lock
+            localTargetEnemy = targetEnemy;
+            localTargetLimb = targetLimb;
+            cachedPos = silentAimBone;
+            
+            // Perform all game API calls while holding the lock to prevent
+            // the enemy from being removed mid-access
+            auto enemyDamage = reinterpret_cast<app::Dam_SyncedDamageBase*>(localTargetEnemy->fields.Damage);
+            if (enemyDamage == nullptr || enemyDamage->fields._Health_k__BackingField <= 0.0f)
+            {
+                // Enemy is dead or invalid, use cached position
+                return cachedPos;
+            }
+            
+            if (localTargetLimb != nullptr)
+            {
+                // Get the current position of the damage limb
+                return app::Dam_EnemyDamageLimb_get_DamageTargetPos(localTargetLimb, NULL);
+            }
+            else
+            {
+                // Fallback to enemy position if no specific limb
+                return app::EnemyAgent_get_Position(localTargetEnemy, NULL);
+            }
         }
     }
 

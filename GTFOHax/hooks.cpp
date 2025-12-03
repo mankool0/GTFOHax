@@ -369,41 +369,61 @@ bool Hooks::hkWeapon_CastWeaponRay_1(app::Transform* alignTransform, app::Weapon
                 {
                     // Shoot from enemy's front (based on movement direction, fallback to facing direction)
                     bool directionSet = false;
-                    if (Aimbot::targetEnemy != nullptr)
                     {
-                        // Try to get movement direction first
-                        app::Vector3 enemyDir = Enemy::GetEnemyMovementDirection(Aimbot::targetEnemy);
-                        bool hasMovementDir = (enemyDir.x != 0.0f || enemyDir.z != 0.0f);
+                        // Thread-safe access to targetEnemy
+                        std::lock_guard<std::mutex> lock(G::enemyAimMtx);
+                        app::EnemyAgent* localTargetEnemy = Aimbot::targetEnemy;
                         
-                        // Fallback to facing direction if not moving
-                        if (!hasMovementDir)
+                        // Validate pointer is still in the enemy list
+                        bool isValid = false;
+                        if (localTargetEnemy != nullptr)
                         {
-                            app::Transform* enemyTransform = app::Component_1_get_transform(
-                                reinterpret_cast<app::Component_1*>(Aimbot::targetEnemy), NULL);
-                            if (enemyTransform != nullptr)
+                            for (const auto& enemyInfo : Enemy::enemiesAimbot)
                             {
-                                enemyDir = app::Transform_get_forward(enemyTransform, NULL);
-                                float len = sqrtf(enemyDir.x * enemyDir.x + enemyDir.z * enemyDir.z);
-                                if (len > 0.001f)
+                                if (enemyInfo->enemyAgent == localTargetEnemy)
                                 {
-                                    enemyDir.x /= len;
-                                    enemyDir.z /= len;
-                                    hasMovementDir = true;
+                                    isValid = true;
+                                    break;
                                 }
                             }
                         }
                         
-                        if (hasMovementDir)
+                        if (isValid)
                         {
-                            // Origin is in front of enemy (where enemy is moving/facing)
-                            originPos.x = currentTargetPos.x + enemyDir.x * offset;
-                            originPos.y = currentTargetPos.y;
-                            originPos.z = currentTargetPos.z + enemyDir.z * offset;
-                            // Fire direction is opposite (shooting into the enemy's face)
-                            (*weaponRayData)->fields.fireDir.x = -enemyDir.x;
-                            (*weaponRayData)->fields.fireDir.y = 0.0f;
-                            (*weaponRayData)->fields.fireDir.z = -enemyDir.z;
-                            directionSet = true;
+                            // Try to get movement direction first
+                            app::Vector3 enemyDir = Enemy::GetEnemyMovementDirection(localTargetEnemy);
+                            bool hasMovementDir = (enemyDir.x != 0.0f || enemyDir.z != 0.0f);
+                            
+                            // Fallback to facing direction if not moving
+                            if (!hasMovementDir)
+                            {
+                                app::Transform* enemyTransform = app::Component_1_get_transform(
+                                    reinterpret_cast<app::Component_1*>(localTargetEnemy), NULL);
+                                if (enemyTransform != nullptr)
+                                {
+                                    enemyDir = app::Transform_get_forward(enemyTransform, NULL);
+                                    float len = sqrtf(enemyDir.x * enemyDir.x + enemyDir.z * enemyDir.z);
+                                    if (len > 0.001f)
+                                    {
+                                        enemyDir.x /= len;
+                                        enemyDir.z /= len;
+                                        hasMovementDir = true;
+                                    }
+                                }
+                            }
+                            
+                            if (hasMovementDir)
+                            {
+                                // Origin is in front of enemy (where enemy is moving/facing)
+                                originPos.x = currentTargetPos.x + enemyDir.x * offset;
+                                originPos.y = currentTargetPos.y;
+                                originPos.z = currentTargetPos.z + enemyDir.z * offset;
+                                // Fire direction is opposite (shooting into the enemy's face)
+                                (*weaponRayData)->fields.fireDir.x = -enemyDir.x;
+                                (*weaponRayData)->fields.fireDir.y = 0.0f;
+                                (*weaponRayData)->fields.fireDir.z = -enemyDir.z;
+                                directionSet = true;
+                            }
                         }
                     }
                     // Fallback to FromAbove if targetEnemy is null or direction couldn't be determined
@@ -421,41 +441,61 @@ bool Hooks::hkWeapon_CastWeaponRay_1(app::Transform* alignTransform, app::Weapon
                 {
                     // Shoot from enemy's back (opposite to movement direction, fallback to facing direction)
                     bool directionSet = false;
-                    if (Aimbot::targetEnemy != nullptr)
                     {
-                        // Try to get movement direction first
-                        app::Vector3 enemyDir = Enemy::GetEnemyMovementDirection(Aimbot::targetEnemy);
-                        bool hasMovementDir = (enemyDir.x != 0.0f || enemyDir.z != 0.0f);
+                        // Thread-safe access to targetEnemy
+                        std::lock_guard<std::mutex> lock(G::enemyAimMtx);
+                        app::EnemyAgent* localTargetEnemy = Aimbot::targetEnemy;
                         
-                        // Fallback to facing direction if not moving
-                        if (!hasMovementDir)
+                        // Validate pointer is still in the enemy list
+                        bool isValid = false;
+                        if (localTargetEnemy != nullptr)
                         {
-                            app::Transform* enemyTransform = app::Component_1_get_transform(
-                                reinterpret_cast<app::Component_1*>(Aimbot::targetEnemy), NULL);
-                            if (enemyTransform != nullptr)
+                            for (const auto& enemyInfo : Enemy::enemiesAimbot)
                             {
-                                enemyDir = app::Transform_get_forward(enemyTransform, NULL);
-                                float len = sqrtf(enemyDir.x * enemyDir.x + enemyDir.z * enemyDir.z);
-                                if (len > 0.001f)
+                                if (enemyInfo->enemyAgent == localTargetEnemy)
                                 {
-                                    enemyDir.x /= len;
-                                    enemyDir.z /= len;
-                                    hasMovementDir = true;
+                                    isValid = true;
+                                    break;
                                 }
                             }
                         }
                         
-                        if (hasMovementDir)
+                        if (isValid)
                         {
-                            // Origin is behind enemy (opposite to where enemy is moving/facing)
-                            originPos.x = currentTargetPos.x - enemyDir.x * offset;
-                            originPos.y = currentTargetPos.y;
-                            originPos.z = currentTargetPos.z - enemyDir.z * offset;
-                            // Fire direction is same as enemy's direction (shooting into enemy's back)
-                            (*weaponRayData)->fields.fireDir.x = enemyDir.x;
-                            (*weaponRayData)->fields.fireDir.y = 0.0f;
-                            (*weaponRayData)->fields.fireDir.z = enemyDir.z;
-                            directionSet = true;
+                            // Try to get movement direction first
+                            app::Vector3 enemyDir = Enemy::GetEnemyMovementDirection(localTargetEnemy);
+                            bool hasMovementDir = (enemyDir.x != 0.0f || enemyDir.z != 0.0f);
+                            
+                            // Fallback to facing direction if not moving
+                            if (!hasMovementDir)
+                            {
+                                app::Transform* enemyTransform = app::Component_1_get_transform(
+                                    reinterpret_cast<app::Component_1*>(localTargetEnemy), NULL);
+                                if (enemyTransform != nullptr)
+                                {
+                                    enemyDir = app::Transform_get_forward(enemyTransform, NULL);
+                                    float len = sqrtf(enemyDir.x * enemyDir.x + enemyDir.z * enemyDir.z);
+                                    if (len > 0.001f)
+                                    {
+                                        enemyDir.x /= len;
+                                        enemyDir.z /= len;
+                                        hasMovementDir = true;
+                                    }
+                                }
+                            }
+                            
+                            if (hasMovementDir)
+                            {
+                                // Origin is behind enemy (opposite to where enemy is moving/facing)
+                                originPos.x = currentTargetPos.x - enemyDir.x * offset;
+                                originPos.y = currentTargetPos.y;
+                                originPos.z = currentTargetPos.z - enemyDir.z * offset;
+                                // Fire direction is same as enemy's direction (shooting into enemy's back)
+                                (*weaponRayData)->fields.fireDir.x = enemyDir.x;
+                                (*weaponRayData)->fields.fireDir.y = 0.0f;
+                                (*weaponRayData)->fields.fireDir.z = enemyDir.z;
+                                directionSet = true;
+                            }
                         }
                     }
                     // Fallback to FromAbove if targetEnemy is null or direction couldn't be determined
@@ -517,34 +557,38 @@ bool Hooks::hkWeapon_CastWeaponRay_1(app::Transform* alignTransform, app::Weapon
             }
             
             // Record hit ghost effect - capture current skeleton positions
-            if (Aimbot::settings.hitGhostEnabled && Aimbot::targetEnemy != nullptr)
+            if (Aimbot::settings.hitGhostEnabled)
             {
-                G::enemyAimMtx.lock();
-                for (const auto& enemyInfo : Enemy::enemiesAimbot)
+                std::lock_guard<std::mutex> lock(G::enemyAimMtx);
+                app::EnemyAgent* localTargetEnemy = Aimbot::targetEnemy;
+                
+                if (localTargetEnemy != nullptr)
                 {
-                    if (enemyInfo->enemyAgent == Aimbot::targetEnemy && !enemyInfo->skeletonBones.empty())
+                    for (const auto& enemyInfo : Enemy::enemiesAimbot)
                     {
-                        // Get real-time skeleton positions
-                        std::map<app::HumanBodyBones__Enum, Enemy::Bone> currentBones;
-                        for (const auto& boneType : Enemy::WantedBones)
+                        if (enemyInfo->enemyAgent == localTargetEnemy && !enemyInfo->skeletonBones.empty())
                         {
-                            auto boneTransform = app::Animator_GetBoneTransform(
-                                Aimbot::targetEnemy->fields.Anim, boneType, NULL);
-                            if (boneTransform != nullptr)
+                            // Get real-time skeleton positions
+                            std::map<app::HumanBodyBones__Enum, Enemy::Bone> currentBones;
+                            for (const auto& boneType : Enemy::WantedBones)
                             {
-                                Enemy::Bone bone;
-                                bone.position = app::Transform_get_position(boneTransform, NULL);
-                                currentBones[boneType] = bone;
+                                auto boneTransform = app::Animator_GetBoneTransform(
+                                    localTargetEnemy->fields.Anim, boneType, NULL);
+                                if (boneTransform != nullptr)
+                                {
+                                    Enemy::Bone bone;
+                                    bone.position = app::Transform_get_position(boneTransform, NULL);
+                                    currentBones[boneType] = bone;
+                                }
                             }
+                            if (!currentBones.empty())
+                            {
+                                Aimbot::AddHitGhost(currentBones);
+                            }
+                            break;
                         }
-                        if (!currentBones.empty())
-                        {
-                            Aimbot::AddHitGhost(currentBones);
-                        }
-                        break;
                     }
                 }
-                G::enemyAimMtx.unlock();
             }
         }
         else
