@@ -167,6 +167,7 @@ void Hooks::InitHooks()
     HOOKATTACH(Dam_EnemyDamageBase_ProcessReceivedDamage);
 
     HOOKATTACH(PreLitVolume_Update);
+    HOOKATTACH(RenderPipe_CameraUpdate);
 
     if (hookFailed)
         il2cppi_log_write("Failed Initializing Hooks");
@@ -656,10 +657,88 @@ void Hooks::hkLocalPlayerAgent_Update(app::LocalPlayerAgent* __this, MethodInfo*
         G::callbacks.front()();
         G::callbacks.pop();
     }
-    
+
     G::w2CamMatrix = app::Camera_get_worldToCameraMatrix(G::mainCamera, NULL);
     G::projMatrix = app::Camera_get_projectionMatrix(G::mainCamera, NULL);
     G::viewMatrix = Math::MatrixMult(G::projMatrix, G::w2CamMatrix);
+
+    // Handle custom fullbright light
+    static app::Light* fullBrightLight = nullptr;
+
+    if (Player::fullBrightToggleKey.isToggled())
+    {
+        // Create the light if it doesn't exist
+        if (fullBrightLight == nullptr && G::mainCamera != nullptr)
+        {
+            // Get the camera's GameObject
+            auto cameraGameObject = app::Component_1_get_gameObject(reinterpret_cast<app::Component_1*>(G::mainCamera), NULL);
+            if (cameraGameObject)
+            {
+                // Get UnityEngine.CoreModule assembly
+                auto domain = il2cpp_domain_get();
+                auto assembly = il2cpp_domain_assembly_open(domain, "UnityEngine.CoreModule");
+                if (assembly)
+                {
+                    auto image = il2cpp_assembly_get_image(assembly);
+                    if (image)
+                    {
+                        // Get Light class
+                        auto lightClass = il2cpp_class_from_name(image, "UnityEngine", "Light");
+                        if (lightClass)
+                        {
+                            auto lightType = il2cpp_class_get_type(lightClass);
+                            auto lightTypeObject = il2cpp_type_get_object(lightType);
+                            // Add Light component to camera's GameObject
+                            auto lightComponent = app::GameObject_AddComponent(cameraGameObject, reinterpret_cast<app::Type*>(lightTypeObject), NULL);
+                            fullBrightLight = reinterpret_cast<app::Light*>(lightComponent);
+
+                            if (fullBrightLight)
+                            {
+                                // Configure as spotlight
+                                app::Light_set_type(fullBrightLight, app::LightType__Enum::Spot, NULL);
+
+                                // Disable shadows for performance
+                                app::Light_set_shadows(fullBrightLight, app::LightShadows__Enum::None, NULL);
+
+                                // Set initial properties
+                                app::Light_set_range(fullBrightLight, Player::fullBrightRange, NULL);
+                                app::Light_set_intensity(fullBrightLight, Player::fullBrightIntensity, NULL);
+                                app::Light_set_spotAngle(fullBrightLight, Player::fullBrightAngle, NULL);
+
+                                app::Color lightColor;
+                                lightColor.r = Player::fullBrightColor.x;
+                                lightColor.g = Player::fullBrightColor.y;
+                                lightColor.b = Player::fullBrightColor.z;
+                                lightColor.a = Player::fullBrightColor.w;
+                                app::Light_set_color(fullBrightLight, lightColor, NULL);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Update light properties every frame from sliders
+        if (fullBrightLight != nullptr)
+        {
+            app::Light_set_range(fullBrightLight, Player::fullBrightRange, NULL);
+            app::Light_set_intensity(fullBrightLight, Player::fullBrightIntensity, NULL);
+            app::Light_set_spotAngle(fullBrightLight, Player::fullBrightAngle, NULL);
+
+            app::Color lightColor;
+            lightColor.r = Player::fullBrightColor.x;
+            lightColor.g = Player::fullBrightColor.y;
+            lightColor.b = Player::fullBrightColor.z;
+            lightColor.a = Player::fullBrightColor.w;
+            app::Light_set_color(fullBrightLight, lightColor, NULL);
+        }
+    }
+    else if (fullBrightLight != nullptr)
+    {
+        // Destroy the light component when toggle is off
+        app::Object_1_Destroy_1(reinterpret_cast<app::Object_1*>(fullBrightLight), NULL);
+        fullBrightLight = nullptr;
+    }
 
     G::worldItemsMtx.lock();
     for (ESP::WorldPickupItem& i : ESP::worldItems) i.update();
@@ -725,6 +804,20 @@ bool Hooks::hkDam_EnemyDamageBase_ProcessReceivedDamage(app::Dam_EnemyDamageBase
     }
 
     return retVal;
+}
+
+void Hooks::hkRenderPipe_CameraUpdate(app::Camera* camera, app::RenderPipe_CameraData* cameraData, MethodInfo* method)
+{
+    static auto fpOFunc = reinterpret_cast<void (*)(app::Camera*, app::RenderPipe_CameraData*, MethodInfo*)>(hooks["RenderPipe_CameraUpdate"]);
+
+    // Call original
+    fpOFunc(camera, cameraData, method);
+
+    // Disable shadows when fullbright is on
+    if (Player::fullBrightToggleKey.isToggled())
+    {
+        app::QualitySettings_set_shadowDistance(0.0f, NULL);
+    }
 }
 
 void Hooks::hkPreLitVolume_Update(app::PreLitVolume* __this, MethodInfo* method)

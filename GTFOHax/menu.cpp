@@ -139,6 +139,23 @@ void RenderTabPlayer()
     ImGui::Hotkey("", Player::noFogToggleKey);
     ImGui::PopID();
 
+    ImGui::Checkbox("Full Bright", &Player::fullBrightToggleKey.toggledOn);
+    ImGui::SameLine();
+    ImGui::SetCursorPosX(160);
+    ImGui::PushID("FullBrightHotkey");
+    ImGui::Hotkey("", Player::fullBrightToggleKey);
+    ImGui::PopID();
+
+    if (Player::fullBrightToggleKey.toggledOn)
+    {
+        ImGui::Indent();
+        ImGui::SliderFloat("Range", &Player::fullBrightRange, 0.0f, 1000.0f);
+        ImGui::SliderFloat("Intensity", &Player::fullBrightIntensity, 0.0f, 2.0f);
+        ImGui::SliderFloat("Angle", &Player::fullBrightAngle, 0.0f, 360.0f);
+        ImGui::ColorEdit4("Color", (float*)&Player::fullBrightColor);
+        ImGui::Unindent();
+    }
+
     if (ImGui::Button("Give Health"))
         Player::GiveLocalHealth();
     ImGui::SameLine();
