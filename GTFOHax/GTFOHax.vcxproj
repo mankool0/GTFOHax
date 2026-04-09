@@ -60,6 +60,7 @@
     <ClCompile Include="hacks\esp.cpp" />
     <ClCompile Include="hacks\player.cpp" />
     <ClCompile Include="hooks.cpp" />
+    <ClCompile Include="i18n\i18n.cpp" />
     <ClCompile Include="InputUtil.cpp" />
     <ClCompile Include="utils\math.cpp" />
     <ClCompile Include="menu.cpp" />
@@ -103,6 +104,7 @@
     <ClInclude Include="hacks\esp.h" />
     <ClInclude Include="hacks\player.h" />
     <ClInclude Include="hooks.h" />
+    <ClInclude Include="i18n\i18n.h" />
     <ClInclude Include="InputUtil.h" />
     <ClInclude Include="math.h" />
     <ClInclude Include="menu.h" />
@@ -211,7 +213,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch-il2cpp.h</PrecompiledHeaderFile>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)appdata\msvc;$(ProjectDir)config;$(ProjectDir)fonts;$(ProjectDir)framework;$(ProjectDir)hacks;$(ProjectDir)user;$(SolutionDir)kiero;$(SolutionDir)kiero\minhook\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)appdata\msvc;$(ProjectDir)config;$(ProjectDir)fonts;$(ProjectDir)framework;$(ProjectDir)hacks;$(ProjectDir)i18n;$(ProjectDir)user;$(SolutionDir)kiero;$(SolutionDir)kiero\minhook\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -230,7 +232,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch-il2cpp.h</PrecompiledHeaderFile>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)appdata\msvc;$(ProjectDir)config;$(ProjectDir)fonts;$(ProjectDir)framework;$(ProjectDir)hacks;$(ProjectDir)user;$(SolutionDir)kiero;$(SolutionDir)kiero\minhook\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)appdata\msvc;$(ProjectDir)config;$(ProjectDir)fonts;$(ProjectDir)framework;$(ProjectDir)hacks;$(ProjectDir)i18n;$(ProjectDir)user;$(SolutionDir)kiero;$(SolutionDir)kiero\minhook\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -249,12 +251,13 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch-il2cpp.h</PrecompiledHeaderFile>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)appdata\msvc;$(ProjectDir)config;$(ProjectDir)fonts;$(ProjectDir)framework;$(ProjectDir)hacks;$(ProjectDir)user;$(SolutionDir)kiero;$(SolutionDir)kiero\minhook\include;$(SolutionDir)imgui;$(SolutionDir)imgui\backends</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)appdata\msvc;$(ProjectDir)config;$(ProjectDir)fonts;$(ProjectDir)framework;$(ProjectDir)hacks;$(ProjectDir)i18n;$(ProjectDir)user;$(SolutionDir)kiero;$(SolutionDir)kiero\minhook\include;$(SolutionDir)imgui;$(SolutionDir)imgui\backends</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <PreprocessToFile>false</PreprocessToFile>
       <ShowIncludes>false</ShowIncludes>
       <Optimization>Disabled</Optimization>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -279,8 +282,9 @@ exit 0</Command>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch-il2cpp.h</PrecompiledHeaderFile>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)appdata\msvc;$(ProjectDir)config;$(ProjectDir)fonts;$(ProjectDir)framework;$(ProjectDir)hacks;$(ProjectDir)user;$(SolutionDir)kiero;$(SolutionDir)kiero\minhook\include;$(SolutionDir)imgui;$(SolutionDir)imgui\backends</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)appdata\msvc;$(ProjectDir)config;$(ProjectDir)fonts;$(ProjectDir)framework;$(ProjectDir)hacks;$(ProjectDir)i18n;$(ProjectDir)user;$(SolutionDir)kiero;$(SolutionDir)kiero\minhook\include;$(SolutionDir)imgui;$(SolutionDir)imgui\backends</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

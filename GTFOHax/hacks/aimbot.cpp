@@ -10,18 +10,232 @@ namespace Aimbot
     Settings settings;
     app::Vector3 silentAimBone;
     bool isSilentAiming = false;
+    app::EnemyAgent* targetEnemy = nullptr;
+    app::Dam_EnemyDamageLimb* targetLimb = nullptr;
+    
+    // Hit ghost storage
+    std::vector<HitGhost> hitGhosts;
+    std::mutex hitGhostMtx;
+    
+    // Bullet ray storage
+    std::vector<BulletRay> bulletRays;
+    std::mutex bulletRayMtx;
+    
+    void AddHitGhost(const std::map<app::HumanBodyBones__Enum, Enemy::Bone>& bones)
+    {
+        if (!settings.hitGhostEnabled || bones.empty())
+            return;
+            
+        std::lock_guard<std::mutex> lock(hitGhostMtx);
+        hitGhosts.emplace_back(bones, settings.hitGhostDuration);
+        
+        // Limit max number of ghosts to prevent memory issues
+        if (hitGhosts.size() > 50)
+        {
+            hitGhosts.erase(hitGhosts.begin());
+        }
+    }
+    
+    void CleanupHitGhosts()
+    {
+        std::lock_guard<std::mutex> lock(hitGhostMtx);
+        hitGhosts.erase(
+            std::remove_if(hitGhosts.begin(), hitGhosts.end(), 
+                [](const HitGhost& ghost) { return ghost.IsExpired(); }),
+            hitGhosts.end()
+        );
+    }
+    
+    void RenderHitGhosts()
+    {
+        if (!settings.hitGhostEnabled || !settings.magicBullet)
+            return;
+            
+        CleanupHitGhosts();
+        
+        std::lock_guard<std::mutex> lock(hitGhostMtx);
+        
+        for (const HitGhost& ghost : hitGhosts)
+        {
+            float alpha = ghost.GetAlpha();
+            if (alpha <= 0.0f)
+                continue;
+                
+            // Create color with fading alpha
+            ImVec4 color = settings.hitGhostColor;
+            color.w *= alpha;
+            ImU32 colorU32 = ImGui::GetColorU32(color);
+            
+            // Draw skeleton bones for each group
+            for (const auto& boneGroup : Enemy::skeletonBones)
+            {
+                app::Vector3 prevPos = {0, 0, 0};
+                bool hasPrev = false;
+                
+                for (const auto& boneType : boneGroup)
+                {
+                    auto it = ghost.skeletonPositions.find(boneType);
+                    if (it == ghost.skeletonPositions.end())
+                        continue;
+                        
+                    app::Vector3 curPos = it->second;
+                    
+                    if (hasPrev && !(prevPos.x == 0.0f && prevPos.y == 0.0f && prevPos.z == 0.0f))
+                    {
+                        // Draw bone line
+                        ImVec2 screenStart, screenEnd;
+                        if (Math::WorldToScreen(prevPos, screenStart) && 
+                            Math::WorldToScreen(curPos, screenEnd))
+                        {
+                            ImGui::GetBackgroundDrawList()->AddLine(
+                                screenStart, screenEnd, colorU32, settings.hitGhostThickness);
+                        }
+                    }
+                    
+                    prevPos = curPos;
+                    hasPrev = true;
+                }
+            }
+        }
+    }
+    
+    void AddBulletRay(app::Vector3 startPos, app::Vector3 endPos)
+    {
+        if (!settings.bulletRayEnabled)
+            return;
+            
+        std::lock_guard<std::mutex> lock(bulletRayMtx);
+        bulletRays.emplace_back(startPos, endPos, settings.bulletRayDuration);
+        
+        // Limit max number of rays to prevent visual clutter
+        if (bulletRays.size() > 50)
+        {
+            bulletRays.erase(bulletRays.begin());
+        }
+    }
+    
+    void CleanupBulletRays()
+    {
+        std::lock_guard<std::mutex> lock(bulletRayMtx);
+        bulletRays.erase(
+            std::remove_if(bulletRays.begin(), bulletRays.end(),
+                [](const BulletRay& ray) { return ray.IsExpired(); }),
+            bulletRays.end()
+        );
+    }
+    
+    void RenderBulletRays()
+    {
+        if (!settings.bulletRayEnabled || !settings.magicBullet)
+            return;
+            
+        CleanupBulletRays();
+        
+        std::lock_guard<std::mutex> lock(bulletRayMtx);
+        
+        for (const BulletRay& ray : bulletRays)
+        {
+            float alpha = ray.GetAlpha();
+            if (alpha <= 0.0f)
+                continue;
+                
+            // Create color with fading alpha
+            ImVec4 color = settings.bulletRayColor;
+            color.w *= alpha;
+            ImU32 colorU32 = ImGui::GetColorU32(color);
+            
+            // Convert world positions to screen positions and draw line
+            // Need to copy to non-const variables for WorldToScreen
+            app::Vector3 startPos = ray.startPos;
+            app::Vector3 endPos = ray.endPos;
+            ImVec2 screenStart, screenEnd;
+            if (Math::WorldToScreen(startPos, screenStart) && 
+                Math::WorldToScreen(endPos, screenEnd))
+            {
+                ImGui::GetBackgroundDrawList()->AddLine(
+                    screenStart, screenEnd, colorU32, settings.bulletRayThickness);
+            }
+        }
+    }
+
+    // Get the real-time position of the target bone for magic bullet
+    // This is called at the moment of firing to get the current position
+    // Thread-safe: all pointer access happens while holding the lock
+    app::Vector3 GetCurrentTargetPosition()
+    {
+        // Take a snapshot of the target pointers under lock protection
+        app::EnemyAgent* localTargetEnemy = nullptr;
+        app::Dam_EnemyDamageLimb* localTargetLimb = nullptr;
+        app::Vector3 cachedPos = silentAimBone;
+        
+        {
+            std::lock_guard<std::mutex> lock(G::enemyAimMtx);
+            
+            if (targetEnemy == nullptr)
+                return silentAimBone;
+            
+            // Validate that targetEnemy still exists in the enemy list
+            bool enemyStillValid = false;
+            for (const auto& enemyInfo : Enemy::enemiesAimbot)
+            {
+                if (enemyInfo->enemyAgent == targetEnemy)
+                {
+                    enemyStillValid = true;
+                    break;
+                }
+            }
+            
+            if (!enemyStillValid)
+            {
+                // Enemy no longer exists, clear the pointer and use cached position
+                targetEnemy = nullptr;
+                targetLimb = nullptr;
+                return silentAimBone;
+            }
+            
+            // Copy pointers while still holding lock - the enemy list guarantees
+            // these pointers are valid as long as we hold the lock
+            localTargetEnemy = targetEnemy;
+            localTargetLimb = targetLimb;
+            cachedPos = silentAimBone;
+            
+            // Perform all game API calls while holding the lock to prevent
+            // the enemy from being removed mid-access
+            auto enemyDamage = reinterpret_cast<app::Dam_SyncedDamageBase*>(localTargetEnemy->fields.Damage);
+            if (enemyDamage == nullptr || enemyDamage->fields._Health_k__BackingField <= 0.0f)
+            {
+                // Enemy is dead or invalid, use cached position
+                return cachedPos;
+            }
+            
+            if (localTargetLimb != nullptr)
+            {
+                // Get the current position of the damage limb
+                return app::Dam_EnemyDamageLimb_get_DamageTargetPos(localTargetLimb, NULL);
+            }
+            else
+            {
+                // Fallback to enemy position if no specific limb
+                return app::EnemyAgent_get_Position(localTargetEnemy, NULL);
+            }
+        }
+    }
 
     void RunAimbot()
     {
         if (!settings.toggleKey.isToggled())
         {
             isSilentAiming = false;
+            targetEnemy = nullptr;
+            targetLimb = nullptr;
             return;
         }
 
         if (settings.holdOnly && !settings.holdKey.isDown())
         {
             isSilentAiming = false;
+            targetEnemy = nullptr;
+            targetLimb = nullptr;
             return;
         }
 
@@ -141,6 +355,9 @@ namespace Aimbot
             if (settings.silentAim)
             {
                 silentAimBone = bestBone.position;
+                // Store target info for real-time position update (magic bullet fix)
+                targetEnemy = enemyInfo->enemyAgent;
+                targetLimb = bestBone.limbPtr;  // Will be nullptr if not a damage limb
             }
             else
             {
@@ -153,8 +370,21 @@ namespace Aimbot
         }
 
         if (foundEnemy && settings.silentAim)
+        {
             isSilentAiming = true;
+        }
         else
+        {
             isSilentAiming = false;
+            targetEnemy = nullptr;
+            targetLimb = nullptr;
+        }
+    }
+    
+    bool IsLockedTarget(app::EnemyAgent* enemy)
+    {
+        if (enemy == nullptr)
+            return false;
+        return isSilentAiming && targetEnemy == enemy;
     }
 }

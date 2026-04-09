@@ -1,5 +1,7 @@
 #include "enemy.h"
+#include <cmath>
 #include <iostream>
+#include <set>
 #include <helpers.h>
 #include "aimbot.h"
 #include "esp.h"
@@ -11,6 +13,25 @@ namespace Enemy
     std::vector<std::shared_ptr<EnemyInfo>> enemiesAimbot;
     std::map<std::string, int> enemyIDs;
     std::vector<std::string> enemyNames;
+    
+    // Position tracking for movement direction calculation
+    std::map<app::EnemyAgent*, EnemyPositionHistory> enemyPositionHistory;
+    std::mutex enemyPositionHistoryMtx;
+    
+    app::Vector3 GetEnemyMovementDirection(app::EnemyAgent* enemy)
+    {
+        app::Vector3 zeroVec = {0.0f, 0.0f, 0.0f};
+        if (enemy == nullptr)
+            return zeroVec;
+            
+        std::lock_guard<std::mutex> lock(enemyPositionHistoryMtx);
+        auto it = enemyPositionHistory.find(enemy);
+        if (it != enemyPositionHistory.end() && it->second.hasValidDirection)
+        {
+            return it->second.movementDirection;
+        }
+        return zeroVec;
+    }
     
     bool isBoneVisible(Enemy::Bone& bone)
     {
@@ -93,6 +114,7 @@ namespace Enemy
                     bone.destroyed = limb->fields._IsDestroyed_k__BackingField;
                     bone.limbType = limb->fields.m_type;
                     bone.health = limb->fields.m_health;
+                    bone.limbPtr = limb;  // Store limb pointer for real-time position update
                     damageableBonesVec.push_back(bone);
                 }
 
@@ -152,6 +174,69 @@ namespace Enemy
         enemiesAimbot.clear();
         enemiesAimbot = enemiesTemp;
         G::enemyAimMtx.unlock();
+        
+        // Update position history for movement direction tracking
+        {
+            std::lock_guard<std::mutex> lock(enemyPositionHistoryMtx);
+            
+            // Track which enemies are still valid
+            std::set<app::EnemyAgent*> validEnemies;
+            
+            for (const auto& enemyInfo : enemiesTemp)
+            {
+                app::EnemyAgent* agent = enemyInfo->enemyAgent;
+                validEnemies.insert(agent);
+                
+                app::Vector3 currentPos = app::EnemyAgent_get_Position(agent, NULL);
+                
+                auto it = enemyPositionHistory.find(agent);
+                if (it != enemyPositionHistory.end())
+                {
+                    // Update existing entry
+                    it->second.previousPosition = it->second.currentPosition;
+                    it->second.currentPosition = currentPos;
+                    
+                    // Calculate movement direction
+                    app::Vector3 delta;
+                    delta.x = currentPos.x - it->second.previousPosition.x;
+                    delta.y = 0.0f;  // Ignore vertical movement for horizontal direction
+                    delta.z = currentPos.z - it->second.previousPosition.z;
+                    
+                    float len = sqrtf(delta.x * delta.x + delta.z * delta.z);
+                    if (len > 0.01f)  // Moving threshold
+                    {
+                        it->second.movementDirection.x = delta.x / len;
+                        it->second.movementDirection.y = 0.0f;
+                        it->second.movementDirection.z = delta.z / len;
+                        it->second.hasValidDirection = true;
+                    }
+                    // Keep previous direction if not moving significantly
+                }
+                else
+                {
+                    // New enemy, initialize
+                    EnemyPositionHistory history;
+                    history.previousPosition = currentPos;
+                    history.currentPosition = currentPos;
+                    history.movementDirection = {0.0f, 0.0f, 0.0f};
+                    history.hasValidDirection = false;
+                    enemyPositionHistory[agent] = history;
+                }
+            }
+            
+            // Clean up entries for enemies that no longer exist
+            for (auto it = enemyPositionHistory.begin(); it != enemyPositionHistory.end(); )
+            {
+                if (validEnemies.find(it->first) == validEnemies.end())
+                {
+                    it = enemyPositionHistory.erase(it);
+                }
+                else
+                {
+                    ++it;
+                }
+            }
+        }
     }
 
     void _SpawnEnemy(int id, app::AgentMode__Enum agentMode)
@@ -171,7 +256,7 @@ namespace Enemy
         if (app::Physics_Raycast_14(screenCenterRay, &raycastHit, 200, NULL))
         {
             app::EnemyAllocator_ResetAllowedToSpawn(NULL);
-            app::EnemyAllocator_SpawnEnemy(enemyAllocator, id, courseNode, agentMode, raycastHit.m_Point, playerRotation, NULL, NULL, NULL);
+            app::EnemyAllocator_SpawnEnemy(enemyAllocator, id, courseNode, agentMode, raycastHit.m_Point, playerRotation, nullptr, 0, nullptr);
         }
     }
 

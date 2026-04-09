@@ -10,6 +10,7 @@
 #include "hooks.h"
 #include "hacks/esp.h"
 #include "config/config.h"
+#include "i18n/i18n.h"
 
 
 // Set the name of your log file here
@@ -27,6 +28,9 @@ void Run()
 
     // If you would like to output to a new console window, use il2cppi_new_console() to open one and redirect stdout
     //il2cppi_new_console();
+
+    // Initialize i18n system
+    I18N::Initialize();
 
     Hooks::InitHooks();
     ESP::Init();

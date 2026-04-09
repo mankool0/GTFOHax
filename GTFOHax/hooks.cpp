@@ -7,6 +7,7 @@
 #include "fonts/fonts.h"
 
 #include <algorithm>
+#include <cmath>
 #include <iostream>
 #include <map>
 #include <string>
@@ -14,6 +15,7 @@
 #include "hacks/enemy.h"
 #include "utils/math.h"
 #include "hacks/aimbot.h"
+#include "i18n/i18n.h"
 
 #include "MinHook.h"
 
@@ -347,11 +349,249 @@ bool Hooks::hkWeapon_CastWeaponRay_1(app::Transform* alignTransform, app::Weapon
     {
         if (Aimbot::settings.magicBullet)
         {
-            originPos = Aimbot::silentAimBone;
-            originPos.y += 0.5f;
-            (*weaponRayData)->fields.fireDir.x = 0.0f;
-            (*weaponRayData)->fields.fireDir.y = -1.0f;
-            (*weaponRayData)->fields.fireDir.z = 0.0f;
+            // Get the real-time position of the target to fix miss on fast-moving enemies
+            app::Vector3 currentTargetPos = Aimbot::GetCurrentTargetPosition();
+            float offset = Aimbot::settings.magicBulletOffset;
+            
+            // Calculate origin position and fire direction based on selected direction mode
+            switch (Aimbot::settings.magicBulletDirection)
+            {
+                case Aimbot::MagicBulletDirection::FromAbove:
+                default:
+                {
+                    // Default: shoot from above the target, downward
+                    originPos = currentTargetPos;
+                    originPos.y += offset;
+                    (*weaponRayData)->fields.fireDir.x = 0.0f;
+                    (*weaponRayData)->fields.fireDir.y = -1.0f;
+                    (*weaponRayData)->fields.fireDir.z = 0.0f;
+                    break;
+                }
+                case Aimbot::MagicBulletDirection::FromFront:
+                {
+                    // Shoot from enemy's front (based on movement direction, fallback to facing direction)
+                    bool directionSet = false;
+                    {
+                        // Thread-safe access to targetEnemy
+                        std::lock_guard<std::mutex> lock(G::enemyAimMtx);
+                        app::EnemyAgent* localTargetEnemy = Aimbot::targetEnemy;
+                        
+                        // Validate pointer is still in the enemy list
+                        bool isValid = false;
+                        if (localTargetEnemy != nullptr)
+                        {
+                            for (const auto& enemyInfo : Enemy::enemiesAimbot)
+                            {
+                                if (enemyInfo->enemyAgent == localTargetEnemy)
+                                {
+                                    isValid = true;
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        if (isValid)
+                        {
+                            // Try to get movement direction first
+                            app::Vector3 enemyDir = Enemy::GetEnemyMovementDirection(localTargetEnemy);
+                            bool hasMovementDir = (enemyDir.x != 0.0f || enemyDir.z != 0.0f);
+                            
+                            // Fallback to facing direction if not moving
+                            if (!hasMovementDir)
+                            {
+                                app::Transform* enemyTransform = app::Component_1_get_transform(
+                                    reinterpret_cast<app::Component_1*>(localTargetEnemy), NULL);
+                                if (enemyTransform != nullptr)
+                                {
+                                    enemyDir = app::Transform_get_forward(enemyTransform, NULL);
+                                    float len = sqrtf(enemyDir.x * enemyDir.x + enemyDir.z * enemyDir.z);
+                                    if (len > 0.001f)
+                                    {
+                                        enemyDir.x /= len;
+                                        enemyDir.z /= len;
+                                        hasMovementDir = true;
+                                    }
+                                }
+                            }
+                            
+                            if (hasMovementDir)
+                            {
+                                // Origin is in front of enemy (where enemy is moving/facing)
+                                originPos.x = currentTargetPos.x + enemyDir.x * offset;
+                                originPos.y = currentTargetPos.y;
+                                originPos.z = currentTargetPos.z + enemyDir.z * offset;
+                                // Fire direction is opposite (shooting into the enemy's face)
+                                (*weaponRayData)->fields.fireDir.x = -enemyDir.x;
+                                (*weaponRayData)->fields.fireDir.y = 0.0f;
+                                (*weaponRayData)->fields.fireDir.z = -enemyDir.z;
+                                directionSet = true;
+                            }
+                        }
+                    }
+                    // Fallback to FromAbove if targetEnemy is null or direction couldn't be determined
+                    if (!directionSet)
+                    {
+                        originPos = currentTargetPos;
+                        originPos.y += offset;
+                        (*weaponRayData)->fields.fireDir.x = 0.0f;
+                        (*weaponRayData)->fields.fireDir.y = -1.0f;
+                        (*weaponRayData)->fields.fireDir.z = 0.0f;
+                    }
+                    break;
+                }
+                case Aimbot::MagicBulletDirection::FromBehind:
+                {
+                    // Shoot from enemy's back (opposite to movement direction, fallback to facing direction)
+                    bool directionSet = false;
+                    {
+                        // Thread-safe access to targetEnemy
+                        std::lock_guard<std::mutex> lock(G::enemyAimMtx);
+                        app::EnemyAgent* localTargetEnemy = Aimbot::targetEnemy;
+                        
+                        // Validate pointer is still in the enemy list
+                        bool isValid = false;
+                        if (localTargetEnemy != nullptr)
+                        {
+                            for (const auto& enemyInfo : Enemy::enemiesAimbot)
+                            {
+                                if (enemyInfo->enemyAgent == localTargetEnemy)
+                                {
+                                    isValid = true;
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        if (isValid)
+                        {
+                            // Try to get movement direction first
+                            app::Vector3 enemyDir = Enemy::GetEnemyMovementDirection(localTargetEnemy);
+                            bool hasMovementDir = (enemyDir.x != 0.0f || enemyDir.z != 0.0f);
+                            
+                            // Fallback to facing direction if not moving
+                            if (!hasMovementDir)
+                            {
+                                app::Transform* enemyTransform = app::Component_1_get_transform(
+                                    reinterpret_cast<app::Component_1*>(localTargetEnemy), NULL);
+                                if (enemyTransform != nullptr)
+                                {
+                                    enemyDir = app::Transform_get_forward(enemyTransform, NULL);
+                                    float len = sqrtf(enemyDir.x * enemyDir.x + enemyDir.z * enemyDir.z);
+                                    if (len > 0.001f)
+                                    {
+                                        enemyDir.x /= len;
+                                        enemyDir.z /= len;
+                                        hasMovementDir = true;
+                                    }
+                                }
+                            }
+                            
+                            if (hasMovementDir)
+                            {
+                                // Origin is behind enemy (opposite to where enemy is moving/facing)
+                                originPos.x = currentTargetPos.x - enemyDir.x * offset;
+                                originPos.y = currentTargetPos.y;
+                                originPos.z = currentTargetPos.z - enemyDir.z * offset;
+                                // Fire direction is same as enemy's direction (shooting into enemy's back)
+                                (*weaponRayData)->fields.fireDir.x = enemyDir.x;
+                                (*weaponRayData)->fields.fireDir.y = 0.0f;
+                                (*weaponRayData)->fields.fireDir.z = enemyDir.z;
+                                directionSet = true;
+                            }
+                        }
+                    }
+                    // Fallback to FromAbove if targetEnemy is null or direction couldn't be determined
+                    if (!directionSet)
+                    {
+                        originPos = currentTargetPos;
+                        originPos.y += offset;
+                        (*weaponRayData)->fields.fireDir.x = 0.0f;
+                        (*weaponRayData)->fields.fireDir.y = -1.0f;
+                        (*weaponRayData)->fields.fireDir.z = 0.0f;
+                    }
+                    break;
+                }
+                case Aimbot::MagicBulletDirection::FromPlayer:
+                {
+                    // Shoot from player's direction toward enemy
+                    bool directionSet = false;
+                    if (G::localPlayer != nullptr)
+                    {
+                        app::Vector3 playerEyePos = G::localPlayer->fields.m_eyePosition;
+                        app::Vector3 dirToEnemy = Math::Vector3Sub(currentTargetPos, playerEyePos);
+                        float len = sqrtf(dirToEnemy.x * dirToEnemy.x + dirToEnemy.y * dirToEnemy.y + dirToEnemy.z * dirToEnemy.z);
+                        if (len > 0.001f)
+                        {
+                            dirToEnemy = app::Vector3_Normalize(dirToEnemy, NULL);
+                            // Origin is offset distance away from target, toward player
+                            originPos.x = currentTargetPos.x - dirToEnemy.x * offset;
+                            originPos.y = currentTargetPos.y - dirToEnemy.y * offset;
+                            originPos.z = currentTargetPos.z - dirToEnemy.z * offset;
+                            // Fire direction is toward the enemy
+                            (*weaponRayData)->fields.fireDir = dirToEnemy;
+                            directionSet = true;
+                        }
+                    }
+                    // Fallback to FromAbove if localPlayer is null or direction couldn't be determined
+                    if (!directionSet)
+                    {
+                        originPos = currentTargetPos;
+                        originPos.y += offset;
+                        (*weaponRayData)->fields.fireDir.x = 0.0f;
+                        (*weaponRayData)->fields.fireDir.y = -1.0f;
+                        (*weaponRayData)->fields.fireDir.z = 0.0f;
+                    }
+                    break;
+                }
+            }
+            
+            // Record bullet ray using actual shooting parameters
+            if (Aimbot::settings.bulletRayEnabled)
+            {
+                // Use actual fireDir to calculate ray endpoint
+                app::Vector3 fireDir = (*weaponRayData)->fields.fireDir;
+                float rayLength = offset * 2.0f;  // Length of visible ray (covers the offset distance)
+                app::Vector3 rayEnd;
+                rayEnd.x = originPos.x + fireDir.x * rayLength;
+                rayEnd.y = originPos.y + fireDir.y * rayLength;
+                rayEnd.z = originPos.z + fireDir.z * rayLength;
+                Aimbot::AddBulletRay(originPos, rayEnd);
+            }
+            
+            // Record hit ghost effect - capture current skeleton positions
+            if (Aimbot::settings.hitGhostEnabled)
+            {
+                std::lock_guard<std::mutex> lock(G::enemyAimMtx);
+                app::EnemyAgent* localTargetEnemy = Aimbot::targetEnemy;
+                
+                if (localTargetEnemy != nullptr)
+                {
+                    for (const auto& enemyInfo : Enemy::enemiesAimbot)
+                    {
+                        if (enemyInfo->enemyAgent == localTargetEnemy && !enemyInfo->skeletonBones.empty())
+                        {
+                            // Get real-time skeleton positions
+                            std::map<app::HumanBodyBones__Enum, Enemy::Bone> currentBones;
+                            for (const auto& boneType : Enemy::WantedBones)
+                            {
+                                auto boneTransform = app::Animator_GetBoneTransform(
+                                    localTargetEnemy->fields.Anim, boneType, NULL);
+                                if (boneTransform != nullptr)
+                                {
+                                    Enemy::Bone bone;
+                                    bone.position = app::Transform_get_position(boneTransform, NULL);
+                                    currentBones[boneType] = bone;
+                                }
+                            }
+                            if (!currentBones.empty())
+                            {
+                                Aimbot::AddHitGhost(currentBones);
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
         }
         else
         {
@@ -865,13 +1105,53 @@ HRESULT __stdcall Hooks::hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval
 
             ImGuiIO& io = ImGui::GetIO();
             io.ImeWindowHandle = G::windowHwnd;
-            G::defaultFont = io.Fonts->AddFontDefault();
+            
+            // Load font with Chinese support
             ImFontConfig config;
             config.FontBuilderFlags |= ImGuiFreeTypeBuilderFlags::ImGuiFreeTypeBuilderFlags_ForceAutoHint;
-            G::espFont = io.Fonts->AddFontFromMemoryCompressedBase85TTF(Fonts::GetRobotoFontDataTTFBase85(), 14, &config);
+            
+            const ImWchar* chineseRanges = io.Fonts->GetGlyphRangesChineseFull();
+
+            // Try multiple Chinese fonts in order of preference
+            const char* chineseFonts[] = {
+                "C:\\Windows\\Fonts\\msyh.ttc",    // Microsoft YaHei (Win7+)
+                "C:\\Windows\\Fonts\\simhei.ttf",  // SimHei (older systems)
+                "C:\\Windows\\Fonts\\simsun.ttc",  // SimSun (most compatible)
+                "C:\\Windows\\Fonts\\msyhl.ttc",   // YaHei Light
+                "C:\\Windows\\Fonts\\simkai.ttf",  // KaiTi
+            };
+
+            const char* loadedFontPath = nullptr;
+            ImFont* menuFont = nullptr;
+            for (const char* fontPath : chineseFonts) {
+                // Check existence before calling AddFontFromFileTTF — it fires an assert on missing files
+                if (FILE* f = fopen(fontPath, "rb")) {
+                    fclose(f);
+                    menuFont = io.Fonts->AddFontFromFileTTF(fontPath, 16.0f, &config, chineseRanges);
+                    if (menuFont) {
+                        loadedFontPath = fontPath;
+                        break;
+                    }
+                }
+            }
+
+            if (loadedFontPath) {
+                G::defaultFont = menuFont;
+                G::espFont = io.Fonts->AddFontFromFileTTF(loadedFontPath, 14.0f, &config, chineseRanges);
+                G::chineseFontAvailable = true;
+            } else {
+                G::defaultFont = io.Fonts->AddFontDefault();
+                G::espFont = io.Fonts->AddFontFromMemoryCompressedBase85TTF(
+                    Fonts::GetRobotoFontDataTTFBase85(), 14, &config);
+                G::chineseFontAvailable = false;
+            }
+            
             unsigned char* pixels;
             int width, height;
             io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
+            
+            // Initialize language after font loading based on availability
+            I18N::InitializeAfterFontLoad(G::chineseFontAvailable);
 
             ImGui_ImplWin32_Init(G::windowHwnd);
             ImGui_ImplDX11_Init(G::pDevice, G::pContext);

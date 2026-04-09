@@ -370,3 +370,6 @@ FodyWeavers.xsd
 
 /refData/
 /build/
+
+# Project specific
+*.exe
