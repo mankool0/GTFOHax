@@ -48,5 +48,6 @@ namespace Hooks
         uint32_t gearCategoryId, MethodInfo* method);
 
     void hkPreLitVolume_Update(app::PreLitVolume* __this, MethodInfo* method);
+    void hkRenderPipe_CameraUpdate(app::Camera* camera, app::RenderPipe_CameraData* cameraData, MethodInfo* method);
 }
 

@@ -253,6 +253,11 @@ void Config::Save()
             {"NoSpreadToggleKey", Player::noSpreadToggleKey},
             {"NoShakeToggleKey", Player::noShakeToggleKey},
             {"NoFogToggleKey", Player::noFogToggleKey},
+            {"FullBrightToggleKey", Player::fullBrightToggleKey},
+            {"FullBrightRange", Player::fullBrightRange},
+            {"FullBrightIntensity", Player::fullBrightIntensity},
+            {"FullBrightAngle", Player::fullBrightAngle},
+            {"FullBrightColor", Player::fullBrightColor},
             {"GiveHealthKey", Player::giveHealthKey},
             {"GiveDisinKey", Player::giveDisinKey},
             {"GiveAmmoKey", Player::giveAmmoKey},
@@ -301,6 +306,11 @@ void Config::Load()
         JSON_GET("NoSpreadToggleKey", Player::noSpreadToggleKey);
         JSON_GET("NoShakeToggleKey", Player::noShakeToggleKey);
         JSON_GET("NoFogToggleKey", Player::noFogToggleKey);
+        JSON_GET("FullBrightToggleKey", Player::fullBrightToggleKey);
+        JSON_GET("FullBrightRange", Player::fullBrightRange);
+        JSON_GET("FullBrightIntensity", Player::fullBrightIntensity);
+        JSON_GET("FullBrightAngle", Player::fullBrightAngle);
+        JSON_GET("FullBrightColor", Player::fullBrightColor);
         JSON_GET("GiveHealthKey", Player::giveHealthKey);
         JSON_GET("GiveDisinKey", Player::giveDisinKey);
         JSON_GET("GiveAmmoKey", Player::giveAmmoKey);

@@ -14,10 +14,17 @@ namespace Player
     KeyBindToggle noSpreadToggleKey;
     KeyBindToggle noShakeToggleKey;
     KeyBindToggle noFogToggleKey;
+    KeyBindToggle fullBrightToggleKey;
 
     KeyBind giveHealthKey;
     KeyBind giveDisinKey;
     KeyBind giveAmmoKey;
+
+    // Full Bright Light Settings
+    float fullBrightRange = 1000.0f;
+    float fullBrightIntensity = 0.6f;
+    float fullBrightAngle = 180.0f;
+    ImVec4 fullBrightColor = {1.0f, 0.9f, 0.7f, 1.0f}; // RGBA: warm yellowish
 
     void UpdateInput()
     {
@@ -30,6 +37,7 @@ namespace Player
         noSpreadToggleKey.handleToggle();
         noShakeToggleKey.handleToggle();
         noFogToggleKey.handleToggle();
+        fullBrightToggleKey.handleToggle();
 
         if (giveHealthKey.isPressed())
             GiveLocalHealth();

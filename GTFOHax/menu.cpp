@@ -138,6 +138,24 @@ void RenderTabPlayer()
     ImGui::Hotkey("", Player::noFogToggleKey);
     ImGui::PopID();
 
+    ImGui::Checkbox(I18N::T("player_full_bright"), &Player::fullBrightToggleKey.toggledOn);
+    ImGui::SameLine();
+    ImGui::SetCursorPosX(160);
+    ImGui::PushID("FullBrightHotkey");
+    ImGui::Hotkey("", Player::fullBrightToggleKey);
+    ImGui::PopID();
+
+    if (Player::fullBrightToggleKey.toggledOn)
+    {
+        ImGui::Indent();
+        ImGui::SliderFloat(I18N::T("player_full_bright_range"), &Player::fullBrightRange, 0.0f, 1000.0f);
+        ImGui::SliderFloat(I18N::T("player_full_bright_intensity"), &Player::fullBrightIntensity, 0.0f, 2.0f);
+        ImGui::SliderFloat(I18N::T("player_full_bright_angle"), &Player::fullBrightAngle, 0.0f, 360.0f);
+        ImGui::ColorEdit4(I18N::T("player_full_bright_color"), (float*)&Player::fullBrightColor);
+        ImGui::Unindent();
+    }
+
+    if (ImGui::Button("Give Health"))
     if (ImGui::Button(I18N::T("player_give_health")))
         Player::GiveLocalHealth();
     ImGui::SameLine();
@@ -447,7 +465,12 @@ void RenderTabAimbot()
     int* aimPriority = reinterpret_cast<int*>(&Aimbot::settings.priority);
     ImGui::Text(I18N::T("aimbot_aim_priority"));
     ImGui::SameLine();
-    ImGui::Combo("##AimPriorityEnemyAimbot", aimPriority, Aimbot::EnemyPriorityItems, IM_ARRAYSIZE(Aimbot::EnemyPriorityItems));
+    const char* priorityItems[] = {
+        I18N::T("aimbot_priority_health"),
+        I18N::T("aimbot_priority_distance"),
+        I18N::T("aimbot_priority_fov"),
+    };
+    ImGui::Combo("##AimPriorityEnemyAimbot", aimPriority, priorityItems, IM_ARRAYSIZE(priorityItems));
 }
 
 void RenderTabMisc()
@@ -486,10 +509,8 @@ void RenderTabMisc()
             I18N::SetLanguage(static_cast<I18N::Language>(currentLang));
         }
     } else {
-        // No Chinese font, only show English
         const char* englishOnly[] = {"English"};
         ImGui::Combo(I18N::T("misc_language"), &currentLang, englishOnly, 1);
-        ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.0f, 1.0f), "Chinese font not available");
     }
     ImGui::Separator();
 
