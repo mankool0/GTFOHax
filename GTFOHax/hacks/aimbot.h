@@ -98,8 +98,6 @@ namespace Aimbot
     //    Bone,
     //};
 
-    static const char* EnemyPriorityItems[] = { "Health", "Distance", "FOV" };
-    static const char* SelectedEnemyPriorityItem = NULL;
     enum EnemyPriority
     {
         Health = 0,
