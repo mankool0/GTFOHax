@@ -1,0 +1,8 @@
+// Resource file for injector
+#include "resource.h"
+
+// Embed the DLL as a binary resource
+// The DLL file will be compiled into the executable
+// IDR_DLL is the resource ID we'll use to access it
+IDR_DLL RCDATA "GTFOHax.dll"
+

@@ -13,6 +13,7 @@ namespace Enemy
         bool destroyed = false;
         app::eLimbDamageType__Enum limbType;
         float health;
+        app::Dam_EnemyDamageLimb* limbPtr = nullptr;  // Pointer to the original damage limb for real-time position
     };
 
     static const std::vector<app::HumanBodyBones__Enum> WantedBones =
@@ -122,6 +123,20 @@ namespace Enemy
     extern std::vector<std::shared_ptr<EnemyInfo>> enemiesAimbot;
     extern std::map<std::string, int> enemyIDs;
     extern std::vector<std::string> enemyNames;
+    
+    // Position tracking for calculating movement direction
+    struct EnemyPositionHistory
+    {
+        app::Vector3 previousPosition;
+        app::Vector3 currentPosition;
+        app::Vector3 movementDirection;  // Normalized direction
+        bool hasValidDirection;
+    };
+    extern std::map<app::EnemyAgent*, EnemyPositionHistory> enemyPositionHistory;
+    extern std::mutex enemyPositionHistoryMtx;
+    
+    // Get the movement direction of an enemy (returns normalized vector, or zero vector if not moving)
+    app::Vector3 GetEnemyMovementDirection(app::EnemyAgent* enemy);
 
     void _RefreshEnemyAgents();
     void RefreshEnemyAgents();

@@ -88,11 +88,14 @@
     <ClCompile Include="hacks\enemy.cpp">
       <Filter>gtfohax\hacks</Filter>
     </ClCompile>
-    <ClCompile Include="math.cpp">
-      <Filter>gtfohax</Filter>
+    <ClCompile Include="utils\math.cpp">
+      <Filter>gtfohax\utils</Filter>
     </ClCompile>
     <ClCompile Include="hacks\aimbot.cpp">
       <Filter>gtfohax\hacks</Filter>
+    </ClCompile>
+    <ClCompile Include="i18n\i18n.cpp">
+      <Filter>gtfohax\i18n</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -213,11 +216,14 @@
     <ClInclude Include="hacks\enemy.h">
       <Filter>gtfohax\hacks</Filter>
     </ClInclude>
-    <ClInclude Include="math.h">
-      <Filter>gtfohax</Filter>
+    <ClInclude Include="utils\math.h">
+      <Filter>gtfohax\utils</Filter>
     </ClInclude>
     <ClInclude Include="hacks\aimbot.h">
       <Filter>gtfohax\hacks</Filter>
+    </ClInclude>
+    <ClInclude Include="i18n\i18n.h">
+      <Filter>gtfohax\i18n</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -247,6 +253,12 @@
     </Filter>
     <Filter Include="gtfohax\fonts">
       <UniqueIdentifier>{b671e1d1-d594-4fce-a9d9-3f599e7111ef}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="gtfohax\i18n">
+      <UniqueIdentifier>{f4e9d8c1-8a2b-4d5e-9f3a-6c7b5d8e9f0a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="gtfohax\utils">
+      <UniqueIdentifier>{a1b2c3d4-5e6f-7890-abcd-ef1234567890}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

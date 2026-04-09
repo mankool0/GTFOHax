@@ -6,6 +6,7 @@
 #include "hacks/aimbot.h"
 #include "config/config.h"
 #include "ui.h"
+#include "i18n/i18n.h"
 #include <algorithm>
 #include <iostream>
 #include <string>
@@ -13,20 +14,18 @@
 #include <helpers.h>
 #include "utils/math.h"
 
-const char* tabs[] = {
-    "Player",
-    "ESP",
-    "Aimbot",
-    "Misc",
-    "Config"
-};
+// Use functions instead of static arrays to support dynamic translation
+const char* GetTab(int index) {
+    const char* keys[] = {"tab_player", "tab_esp", "tab_aimbot", "tab_misc", "tab_config"};
+    if (index >= 0 && index < 5) return I18N::T(keys[index]);
+    return "";
+}
 
-const char* corners[] = {
-    "Top-Left",
-    "Top-Right",
-    "Bottom-Left",
-    "Bottom-Right"
-};
+const char* GetCorner(int index) {
+    const char* keys[] = {"corner_top_left", "corner_top_right", "corner_bottom_left", "corner_bottom_right"};
+    if (index >= 0 && index < 4) return I18N::T(keys[index]);
+    return "";
+}
 
 ImVec2 RenderESPText(ImVec2 drawPos, ImU32 color, ImU32 outlineColor, std::string text, bool centered = true, bool swapHeight = false)
 {
@@ -76,70 +75,70 @@ void RenderWatermark()
 
 void RenderTabPlayer()
 {
-    ImGui::Checkbox("Godmode", &Player::godmodeToggleKey.toggledOn);
+    ImGui::Checkbox(I18N::T("player_godmode"), &Player::godmodeToggleKey.toggledOn);
     ImGui::SameLine();
     ImGui::SetCursorPosX(160);
     ImGui::PushID("GodmodeHotkey");
     ImGui::Hotkey("", Player::godmodeToggleKey);
     ImGui::PopID();
 
-    ImGui::Checkbox("Infinite Ammo", &Player::infiAmmoToggleKey.toggledOn);
+    ImGui::Checkbox(I18N::T("player_infinite_ammo"), &Player::infiAmmoToggleKey.toggledOn);
     ImGui::SameLine();
     ImGui::SetCursorPosX(160);
     ImGui::PushID("InfiAmmoHotkey");
     ImGui::Hotkey("", Player::infiAmmoToggleKey);
     ImGui::PopID();
 
-    ImGui::Checkbox("Gluegun No Cooldown", &Player::glueInstantToggleKey.toggledOn);
+    ImGui::Checkbox(I18N::T("player_gluegun_no_cooldown"), &Player::glueInstantToggleKey.toggledOn);
     ImGui::SameLine();
     ImGui::SetCursorPosX(160);
     ImGui::PushID("GlueInstantHotKey");
     ImGui::Hotkey("", Player::glueInstantToggleKey);
     ImGui::PopID();
 
-    ImGui::Checkbox("Instant Hack", &Player::instaHackToggleKey.toggledOn);
+    ImGui::Checkbox(I18N::T("player_instant_hack"), &Player::instaHackToggleKey.toggledOn);
     ImGui::SameLine();
     ImGui::SetCursorPosX(160);
     ImGui::PushID("InstaHackHotKey");
     ImGui::Hotkey("", Player::instaHackToggleKey);
     ImGui::PopID();
 
-    ImGui::Checkbox("Full Auto", &Player::fullAutoToggleKey.toggledOn);
+    ImGui::Checkbox(I18N::T("player_full_auto"), &Player::fullAutoToggleKey.toggledOn);
     ImGui::SameLine();
     ImGui::SetCursorPosX(160);
     ImGui::PushID("FullAutoHotKey");
     ImGui::Hotkey("", Player::fullAutoToggleKey);
     ImGui::PopID();
 
-    ImGui::Checkbox("No Recoil", &Player::noRecoilToggleKey.toggledOn);
+    ImGui::Checkbox(I18N::T("player_no_recoil"), &Player::noRecoilToggleKey.toggledOn);
     ImGui::SameLine();
     ImGui::SetCursorPosX(160);
     ImGui::PushID("NoRecoilHotkey");
     ImGui::Hotkey("", Player::noRecoilToggleKey);
     ImGui::PopID();
 
-    ImGui::Checkbox("No Spread", &Player::noSpreadToggleKey.toggledOn);
+    ImGui::Checkbox(I18N::T("player_no_spread"), &Player::noSpreadToggleKey.toggledOn);
     ImGui::SameLine();
     ImGui::SetCursorPosX(160);
     ImGui::PushID("NoSpreadHotkey");
     ImGui::Hotkey("", Player::noSpreadToggleKey);
     ImGui::PopID();
 
-    ImGui::Checkbox("No Shake", &Player::noShakeToggleKey.toggledOn);
+    ImGui::Checkbox(I18N::T("player_no_shake"), &Player::noShakeToggleKey.toggledOn);
     ImGui::SameLine();
     ImGui::SetCursorPosX(160);
     ImGui::PushID("NoShakeHotkey");
     ImGui::Hotkey("", Player::noShakeToggleKey);
     ImGui::PopID();
 
-    ImGui::Checkbox("No Fog", &Player::noFogToggleKey.toggledOn);
+    ImGui::Checkbox(I18N::T("player_no_fog"), &Player::noFogToggleKey.toggledOn);
     ImGui::SameLine();
     ImGui::SetCursorPosX(160);
     ImGui::PushID("NoFogHotkey");
     ImGui::Hotkey("", Player::noFogToggleKey);
     ImGui::PopID();
 
-    if (ImGui::Button("Give Health"))
+    if (ImGui::Button(I18N::T("player_give_health")))
         Player::GiveLocalHealth();
     ImGui::SameLine();
     ImGui::SetCursorPosX(160);
@@ -147,7 +146,7 @@ void RenderTabPlayer()
     ImGui::Hotkey("", Player::giveHealthKey);
     ImGui::PopID();
 
-    if (ImGui::Button("Give Disinfection"))
+    if (ImGui::Button(I18N::T("player_give_disinfection")))
         Player::GiveLocalDisinfection();
     ImGui::SameLine();
     ImGui::SetCursorPosX(160);
@@ -155,7 +154,7 @@ void RenderTabPlayer()
     ImGui::Hotkey("", Player::giveDisinKey);
     ImGui::PopID();
 
-    if (ImGui::Button("Give Ammo"))
+    if (ImGui::Button(I18N::T("player_give_ammo")))
         Player::GiveLocalAmmo();
     ImGui::SameLine();
     ImGui::SetCursorPosX(160);
@@ -166,86 +165,108 @@ void RenderTabPlayer()
 
 void RenderAgentESPSection(ESP::AgentESPSection& section)
 {
-    ImGui::Checkbox(("Enabled##EnemyCheckbox" + section.type).c_str(), &section.show);
+    // Store concatenated strings in local variables to avoid use-after-free with temporaries
+    const std::string& type = section.type;
+    
+    std::string enabledLabel = std::string(I18N::T("esp_enabled")) + "##EnemyCheckbox" + type;
+    ImGui::Checkbox(enabledLabel.c_str(), &section.show);
 
-    if (ImGui::TreeNode("Boxes"))
+    if (ImGui::TreeNode(I18N::T("esp_boxes")))
     {
-        ImGui::Checkbox(("2D Boxes##Enemy" + section.type).c_str(), &section.showBoxes);
+        std::string boxesLabel = std::string(I18N::T("esp_2d_boxes")) + "##Enemy" + type;
+        std::string boxesColorId = "##EnemyBoxesColor" + type;
+        ImGui::Checkbox(boxesLabel.c_str(), &section.showBoxes);
         ImGui::SameLine();
-        ImGui::ColorEdit4(("##EnemyBoxesColor" + section.type).c_str(), (float*)&section.boxesColor, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+        ImGui::ColorEdit4(boxesColorId.c_str(), (float*)&section.boxesColor, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
         section.boxesOutlineColor.w = section.boxesColor.w;
 
-        ImGui::Checkbox(("Healthbar##Enemy" + section.type).c_str(), &section.showHealthBar);
-        ImGui::Text("Bar Thickness");
+        std::string healthBarLabel = std::string(I18N::T("esp_healthbar")) + "##Enemy" + type;
+        std::string healthBarThicknessId = "##SliderEnemyHealthBarThickness" + type;
+        ImGui::Checkbox(healthBarLabel.c_str(), &section.showHealthBar);
+        ImGui::Text(I18N::T("esp_bar_thickness"));
         ImGui::PushItemWidth(-21);
-        ImGui::SliderInt(("##SliderEnemyHealthBarThickness" + section.type).c_str(), &section.healthBarThickness, 1, 20);
+        ImGui::SliderInt(healthBarThicknessId.c_str(), &section.healthBarThickness, 1, 20);
 
-        ImGui::Checkbox(("Healthbar Text##Enemy" + section.type).c_str(), &section.healthBarText);
+        std::string healthBarTextLabel = std::string(I18N::T("esp_healthbar_text")) + "##Enemy" + type;
+        std::string healthBarTextColorId = "##EnemyHealthBarTextColor" + type;
+        std::string healthBarFullTextLabel = std::string(I18N::T("esp_healthbar_full_text")) + "##Enemy" + type;
+        ImGui::Checkbox(healthBarTextLabel.c_str(), &section.healthBarText);
         ImGui::SameLine();
-        ImGui::ColorEdit4(("##EnemyHealthBarTextColor" + section.type).c_str(), (float*)&section.healthBarTextColor, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+        ImGui::ColorEdit4(healthBarTextColorId.c_str(), (float*)&section.healthBarTextColor, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
         section.healthBarTextOutlineColor.w = section.healthBarTextColor.w;
-        ImGui::Checkbox(("Healthbar Full Health Text##Enemy" + section.type).c_str(), &section.healthBarTextFull);
+        ImGui::Checkbox(healthBarFullTextLabel.c_str(), &section.healthBarTextFull);
         
         ImGui::TreePop();
     }
 
-    if (ImGui::TreeNode("Enemy Info"))
+    if (ImGui::TreeNode(I18N::T("esp_enemy_info")))
     {
-        ImGui::Checkbox(("Enabled##EnemyInfo" + section.type).c_str(), &section.showInfo);
+        std::string infoEnabledLabel = std::string(I18N::T("esp_enabled")) + "##EnemyInfo" + type;
+        std::string textColorId = "##EnemyTextColor" + type;
+        ImGui::Checkbox(infoEnabledLabel.c_str(), &section.showInfo);
         ImGui::SameLine();
-        ImGui::ColorEdit4(("##EnemyTextColor" + section.type).c_str(), (float*)&section.textColor, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+        ImGui::ColorEdit4(textColorId.c_str(), (float*)&section.textColor, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
         section.textOutlineColor.w = section.textColor.w;
                 
-        ImGui::Checkbox(("Name##EnemyName" + section.type).c_str(), &section.showName);
-        ImGui::Checkbox(("Type##EnemyType" + section.type).c_str(), &section.showType);
-        ImGui::Checkbox(("Health##EnemyHealth" + section.type).c_str(), &section.showHealth);
-        ImGui::Checkbox(("Distance##EnemyDistance" + section.type).c_str(), &section.showDistance);
+        std::string nameLabel = std::string(I18N::T("esp_name")) + "##EnemyName" + type;
+        std::string typeLabel = std::string(I18N::T("esp_type")) + "##EnemyType" + type;
+        std::string healthLabel = std::string(I18N::T("esp_health")) + "##EnemyHealth" + type;
+        std::string distanceLabel = std::string(I18N::T("esp_distance")) + "##EnemyDistance" + type;
+        ImGui::Checkbox(nameLabel.c_str(), &section.showName);
+        ImGui::Checkbox(typeLabel.c_str(), &section.showType);
+        ImGui::Checkbox(healthLabel.c_str(), &section.showHealth);
+        ImGui::Checkbox(distanceLabel.c_str(), &section.showDistance);
 
         ImGui::TreePop();
     }
 
-    if (ImGui::TreeNode("Skeleton"))
+    if (ImGui::TreeNode(I18N::T("esp_skeleton")))
     {
-        ImGui::Checkbox(("Enabled##EnemySkeleton" + section.type).c_str(), &section.showSkeleton);
+        std::string skeletonEnabledLabel = std::string(I18N::T("esp_enabled")) + "##EnemySkeleton" + type;
+        std::string skeletonColorId = "##EnemySkeletonColor" + type;
+        std::string skeletonDistanceId = "##SliderEnemySkeletonDistance" + type;
+        std::string skeletonThicknessId = "##SliderEnemySkeletonThickness" + type;
+        ImGui::Checkbox(skeletonEnabledLabel.c_str(), &section.showSkeleton);
         ImGui::SameLine();
-        ImGui::ColorEdit4(("##EnemySkeletonColor" + section.type).c_str(), (float*)&section.skeletonColor, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+        ImGui::ColorEdit4(skeletonColorId.c_str(), (float*)&section.skeletonColor, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
 
-        ImGui::Text("Render Distance");
+        ImGui::Text(I18N::T("esp_render_distance"));
         ImGui::PushItemWidth(-21);
-        ImGui::SliderInt(("##SliderEnemySkeletonDistance" + section.type).c_str(), &section.skeletonRenderDistance, 0, 500);
+        ImGui::SliderInt(skeletonDistanceId.c_str(), &section.skeletonRenderDistance, 0, 500);
 
-        ImGui::Text("Line Thickness");
+        ImGui::Text(I18N::T("esp_line_thickness"));
         ImGui::PushItemWidth(-21);
-        ImGui::SliderFloat(("##SliderEnemySkeletonThickness" + section.type).c_str(), &section.skeletonThickness, 0.0f, 10.0f);
+        ImGui::SliderFloat(skeletonThicknessId.c_str(), &section.skeletonThickness, 0.0f, 10.0f);
 
         ImGui::TreePop();
     }
 
-    ImGui::Text("Render Distance");
+    ImGui::Text(I18N::T("esp_render_distance"));
     ImGui::PushItemWidth(-21);
-    ImGui::SliderInt(("##SliderEnemyDistance" + section.type).c_str(), &section.renderDistance, 0, 500);
+    std::string renderDistanceId = "##SliderEnemyDistance" + type;
+    ImGui::SliderInt(renderDistanceId.c_str(), &section.renderDistance, 0, 500);
 }
 
 void RenderTabESP()
 {
-    ImGui::Checkbox("World ESP", &ESP::worldESPToggleKey.toggledOn);
+    ImGui::Checkbox(I18N::T("esp_world_esp"), &ESP::worldESPToggleKey.toggledOn);
     ImGui::SameLine();
     ImGui::SetCursorPosX(160);
     ImGui::PushID("WorldESPHotkey");
     ImGui::Hotkey("", ESP::worldESPToggleKey);
     ImGui::PopID();
 
-    ImGui::Checkbox("Enemy ESP", &ESP::enemyESP.toggleKey.toggledOn);
+    ImGui::Checkbox(I18N::T("esp_enemy_esp"), &ESP::enemyESP.toggleKey.toggledOn);
     ImGui::SameLine();
     ImGui::SetCursorPosX(160);
     ImGui::PushID("EnemyESPHotkey");
     ImGui::Hotkey("", ESP::enemyESP.toggleKey);
     ImGui::PopID();
 
-    if (ImGui::CollapsingHeader("World"))
+    if (ImGui::CollapsingHeader(I18N::T("esp_world")))
     {
         ImGui::SetCursorPosX(205);
-        ImGui::Text("Render Distance");
+        ImGui::Text(I18N::T("esp_render_distance"));
 
         
         for (auto it = ESP::espItemsReverse.begin(); it != ESP::espItemsReverse.end(); ++it)
@@ -266,7 +287,7 @@ void RenderTabESP()
         }
     }
     
-    if (ImGui::CollapsingHeader("Enemy"))
+    if (ImGui::CollapsingHeader(I18N::T("esp_enemy")))
     {
         // TODO: Add options to show different enemy types:
         //Weakling = 0x00000000,
@@ -275,13 +296,13 @@ void RenderTabESP()
         //MiniBoss = 0x00000003,
         //Boss = 0x00000004,
 
-        if (ImGui::TreeNode("Visible"))
+        if (ImGui::TreeNode(I18N::T("esp_visible")))
         {
             RenderAgentESPSection(ESP::enemyESP.visibleSec);
             ImGui::TreePop();
         }
 
-        if (ImGui::TreeNode("Non-Visible"))
+        if (ImGui::TreeNode(I18N::T("esp_non_visible")))
         {
             RenderAgentESPSection(ESP::enemyESP.nonVisibleSec);
             ImGui::TreePop();
@@ -291,34 +312,126 @@ void RenderTabESP()
 
 void RenderTabAimbot()
 {
-    ImGui::Checkbox("Enemy Aimbot", &Aimbot::settings.toggleKey.toggledOn);
+    ImGui::Checkbox(I18N::T("aimbot_enemy_aimbot"), &Aimbot::settings.toggleKey.toggledOn);
     ImGui::SameLine();
     ImGui::PushID("EnemyAimbotHotkey");
     ImGui::Hotkey("", Aimbot::settings.toggleKey);
     ImGui::PopID();
 
-    ImGui::Checkbox("On Hold", &Aimbot::settings.holdOnly);
+    ImGui::Checkbox(I18N::T("aimbot_on_hold"), &Aimbot::settings.holdOnly);
     ImGui::SameLine();
     ImGui::PushID("EnemyAimbotHoldKey");
     ImGui::Hotkey("", Aimbot::settings.holdKey);
     ImGui::PopID();
 
-    ImGui::Checkbox("Silent Aim##EnemyAimbot", &Aimbot::settings.silentAim);
-    ImGui::Checkbox("Magic Bullet##EnemyAimbot", &Aimbot::settings.magicBullet);
-    ImGui::Checkbox("Visible Only##EnemyAimbot", &Aimbot::settings.visibleOnly);
-    ImGui::Checkbox("Aim At Armor##EnemyAimbot", &Aimbot::settings.aimAtArmor);
+    // Store concatenated strings in local variables to avoid use-after-free with temporaries
+    std::string silentAimLabel = std::string(I18N::T("aimbot_silent_aim")) + "##EnemyAimbot";
+    std::string magicBulletLabel = std::string(I18N::T("aimbot_magic_bullet")) + "##EnemyAimbot";
+    std::string visibleOnlyLabel = std::string(I18N::T("aimbot_visible_only")) + "##EnemyAimbot";
+    std::string aimAtArmorLabel = std::string(I18N::T("aimbot_aim_at_armor")) + "##EnemyAimbot";
+    std::string renderFovLabel = std::string(I18N::T("aimbot_render_fov")) + "##EnemyAimbot";
     
-    ImGui::Text("Aim Distance");
+    ImGui::Checkbox(silentAimLabel.c_str(), &Aimbot::settings.silentAim);
+    ImGui::Checkbox(magicBulletLabel.c_str(), &Aimbot::settings.magicBullet);
+    
+    // Magic bullet settings (only show when magic bullet is enabled)
+    if (Aimbot::settings.magicBullet)
+    {
+        ImGui::Indent(20.0f);
+        
+        // Shooting direction selection
+        ImGui::Text(I18N::T("aimbot_magic_bullet_direction"));
+        ImGui::SameLine();
+        int* magicBulletDir = reinterpret_cast<int*>(&Aimbot::settings.magicBulletDirection);
+        ImGui::PushItemWidth(150);
+        const char* dirItems[] = {
+            I18N::T("aimbot_magic_bullet_dir_above"),
+            I18N::T("aimbot_magic_bullet_dir_front"),
+            I18N::T("aimbot_magic_bullet_dir_behind"),
+            I18N::T("aimbot_magic_bullet_dir_player"),
+        };
+        ImGui::Combo("##MagicBulletDirection", magicBulletDir, dirItems, IM_ARRAYSIZE(dirItems));
+        ImGui::PopItemWidth();
+        
+        // Offset distance
+        ImGui::Text(I18N::T("aimbot_magic_bullet_offset"));
+        ImGui::SameLine();
+        ImGui::PushItemWidth(100);
+        ImGui::SliderFloat("##MagicBulletOffset", &Aimbot::settings.magicBulletOffset, 0.1f, 3.0f, "%.1fm");
+        ImGui::PopItemWidth();
+        
+        std::string hitGhostLabel = std::string(I18N::T("aimbot_hit_ghost")) + "##EnemyAimbot";
+        ImGui::Checkbox(hitGhostLabel.c_str(), &Aimbot::settings.hitGhostEnabled);
+        if (Aimbot::settings.hitGhostEnabled)
+        {
+            ImGui::SameLine();
+            ImGui::ColorEdit4("##HitGhostColor", (float*)&Aimbot::settings.hitGhostColor, 
+                ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+            
+            ImGui::Text(I18N::T("aimbot_hit_ghost_duration"));
+            ImGui::SameLine();
+            ImGui::PushItemWidth(100);
+            ImGui::SliderFloat("##HitGhostDuration", &Aimbot::settings.hitGhostDuration, 0.1f, 3.0f, "%.2fs");
+            ImGui::PopItemWidth();
+            
+            ImGui::Text(I18N::T("aimbot_hit_ghost_thickness"));
+            ImGui::SameLine();
+            ImGui::PushItemWidth(100);
+            ImGui::SliderFloat("##HitGhostThickness", &Aimbot::settings.hitGhostThickness, 0.5f, 5.0f);
+            ImGui::PopItemWidth();
+        }
+        
+        // Bullet ray settings
+        std::string bulletRayLabel = std::string(I18N::T("aimbot_bullet_ray")) + "##EnemyAimbot";
+        ImGui::Checkbox(bulletRayLabel.c_str(), &Aimbot::settings.bulletRayEnabled);
+        if (Aimbot::settings.bulletRayEnabled)
+        {
+            ImGui::SameLine();
+            ImGui::ColorEdit4("##BulletRayColor", (float*)&Aimbot::settings.bulletRayColor, 
+                ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+            
+            ImGui::Text(I18N::T("aimbot_bullet_ray_duration"));
+            ImGui::SameLine();
+            ImGui::PushItemWidth(100);
+            ImGui::SliderFloat("##BulletRayDuration", &Aimbot::settings.bulletRayDuration, 0.1f, 3.0f, "%.2fs");
+            ImGui::PopItemWidth();
+            
+            ImGui::Text(I18N::T("aimbot_bullet_ray_thickness"));
+            ImGui::SameLine();
+            ImGui::PushItemWidth(100);
+            ImGui::SliderFloat("##BulletRayThickness", &Aimbot::settings.bulletRayThickness, 0.5f, 5.0f);
+            ImGui::PopItemWidth();
+        }
+        ImGui::Unindent(20.0f);
+    }
+    
+    // Target highlight settings (always visible when aimbot enabled)
+    std::string targetHighlightLabel = std::string(I18N::T("aimbot_target_highlight")) + "##EnemyAimbot";
+    ImGui::Checkbox(targetHighlightLabel.c_str(), &Aimbot::settings.targetHighlight);
+    if (Aimbot::settings.targetHighlight)
+    {
+        ImGui::SameLine();
+        ImGui::ColorEdit4("##TargetHighlightColor", (float*)&Aimbot::settings.targetHighlightColor, 
+            ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+        ImGui::SameLine();
+        std::string targetMarkerLabel = std::string(I18N::T("aimbot_target_marker")) + "##EnemyAimbot";
+        ImGui::Checkbox(targetMarkerLabel.c_str(), &Aimbot::settings.targetHighlightMarker);
+    }
+    
+    ImGui::Checkbox(visibleOnlyLabel.c_str(), &Aimbot::settings.visibleOnly);
+    ImGui::Checkbox(aimAtArmorLabel.c_str(), &Aimbot::settings.aimAtArmor);
+    
+    ImGui::Text(I18N::T("aimbot_aim_distance"));
     ImGui::SameLine();
     ImGui::PushItemWidth(-25);
     ImGui::SliderFloat("##AimDistanceSliderEnemyAimbot", &Aimbot::settings.maxDistance, 0.0f, 500.0f);
     
-    ImGui::Text("Smoothing");
+    ImGui::Text(I18N::T("aimbot_smoothing"));
     ImGui::SameLine();
     ImGui::PushItemWidth(-25);
     ImGui::SliderFloat("##SmoothingSliderEnemyAimbot", &Aimbot::settings.smoothing, 0.0f, 0.999f);
     
-    ImGui::Checkbox("Render FOV##EnemyAimbot", &Aimbot::settings.renderFOV);
+    ImGui::Checkbox(renderFovLabel.c_str(), &Aimbot::settings.renderFOV);
     ImGui::SameLine();
     ImGui::PushItemWidth(-25);
     ImGui::SliderFloat("##SliderEnemyAimbotFOV", &Aimbot::settings.aimFov, 0.0f, 360.0f);
@@ -332,26 +445,53 @@ void RenderTabAimbot()
     //ImGui::Combo("##AimTypeEnemyAimbot", aimType, Aimbot::AimTypeItems, IM_ARRAYSIZE(Aimbot::AimTypeItems));
     
     int* aimPriority = reinterpret_cast<int*>(&Aimbot::settings.priority);
-    ImGui::Text("Aim Priority");
+    ImGui::Text(I18N::T("aimbot_aim_priority"));
     ImGui::SameLine();
     ImGui::Combo("##AimPriorityEnemyAimbot", aimPriority, Aimbot::EnemyPriorityItems, IM_ARRAYSIZE(Aimbot::EnemyPriorityItems));
 }
 
 void RenderTabMisc()
 {
-    ImGui::Hotkey("Toggle Menu Key", G::menuKey);
+    ImGui::Hotkey(I18N::T("misc_toggle_menu_key"), G::menuKey);
     
-    if (ImGui::Button("Unload Menu"))
+    if (ImGui::Button(I18N::T("misc_unload_menu")))
         G::running = false;
     ImGui::SameLine();
-    ImGui::Text("Key");
+    ImGui::Text(I18N::T("misc_key"));
     ImGui::SameLine();
     ImGui::PushID("UnloadMenuKey");
     ImGui::Hotkey("", G::unloadKey);
     ImGui::PopID();
 
-    ImGui::Checkbox("Watermark", &G::watermark);
-    ImGui::Combo("Location##Watermark", &G::watermarkCorner, corners, IM_ARRAYSIZE(corners));
+    ImGui::Checkbox(I18N::T("misc_watermark"), &G::watermark);
+    
+    // Dynamically generate corner options
+    const char* cornerItems[4];
+    for (int i = 0; i < 4; i++) {
+        cornerItems[i] = GetCorner(i);
+    }
+    // Store concatenated string in local variable to avoid use-after-free with temporaries
+    std::string locationLabel = std::string(I18N::T("misc_location")) + "##Watermark";
+    ImGui::Combo(locationLabel.c_str(), &G::watermarkCorner, cornerItems, 4);
+
+    // Language selection
+    ImGui::Separator();
+    int currentLang = static_cast<int>(I18N::GetCurrentLanguage());
+    
+    // Show language options based on Chinese font availability
+    if (G::chineseFontAvailable) {
+        // Chinese font available, show all languages
+        if (ImGui::Combo(I18N::T("misc_language"), &currentLang, I18N::LanguageNames, I18N::LanguageCount))
+        {
+            I18N::SetLanguage(static_cast<I18N::Language>(currentLang));
+        }
+    } else {
+        // No Chinese font, only show English
+        const char* englishOnly[] = {"English"};
+        ImGui::Combo(I18N::T("misc_language"), &currentLang, englishOnly, 1);
+        ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.0f, 1.0f), "Chinese font not available");
+    }
+    ImGui::Separator();
 
     static int selectedIndex = 0;
     if (ImGui::BeginCombo("##SpawnEnemyCombo", Enemy::enemyNames[selectedIndex].c_str()))
@@ -371,18 +511,18 @@ void RenderTabMisc()
         ImGui::EndCombo();
     }
     ImGui::SameLine();
-    if (ImGui::Button("Spawn Enemy"))
+    if (ImGui::Button(I18N::T("misc_spawn_enemy")))
         Enemy::SpawnEnemy(Enemy::enemyIDs[Enemy::enemyNames[selectedIndex]], app::AgentMode__Enum::Hibernate); // TODO: Fix map issue
 }
 
 void RenderTabConfig()
 {
-    if (ImGui::Button("Save"))
+    if (ImGui::Button(I18N::T("config_save")))
         Config::Save();
 
     ImGui::SameLine();
 
-    if (ImGui::Button("Load"))
+    if (ImGui::Button(I18N::T("config_load")))
         Config::Load();
 }
 
@@ -572,7 +712,7 @@ void RenderTerminals()
             continue;
 
         std::string terminalName = il2cppi_to_string((*it).terminalItem->fields._ItemKey_k__BackingField);
-        std::string terminalPass = (*it).terminalItem->fields._IsPasswordProtected_k__BackingField ? "\nPassword: " + il2cppi_to_string((*it).terminalItem->fields.m_password) : "";
+        std::string terminalPass = (*it).terminalItem->fields._IsPasswordProtected_k__BackingField ? "\n" + std::string(I18N::T("ingame_password")) + ": " + il2cppi_to_string((*it).terminalItem->fields.m_password) : "";
         std::string espStr = terminalName + " [" + std::to_string(llround((*it).distance)) + "m]" + terminalPass;
 
         ImU32 color = ImGui::GetColorU32(espTerminalSetting->renderColor);
@@ -700,6 +840,11 @@ void RenderEnemyAgent(Enemy::EnemyInfo* enemyInfo, ESP::AgentESPSection* espSett
     if (enemyInfo->distance > espSettings->renderDistance)
         return;
 
+    // Check if this enemy is the current aimbot target
+    bool isLockedTarget = Aimbot::settings.targetHighlight && 
+                          Aimbot::settings.toggleKey.isToggled() &&
+                          Aimbot::IsLockedTarget(enemyInfo->enemyAgent);
+
     Enemy::Bone headBone = enemyInfo->useFallback ? enemyInfo->fallbackBone : enemyInfo->skeletonBones[app::HumanBodyBones__Enum::Head]; // TODO: Fix map issue
     ImVec2 w2sHead;
     if (!Math::WorldToScreen(headBone.position, w2sHead))
@@ -748,9 +893,14 @@ void RenderEnemyAgent(Enemy::EnemyInfo* enemyInfo, ESP::AgentESPSection* espSett
 
     if (espSettings->showBoxes && !enemyInfo->useFallback && valid)
     {    
-        ImGui::GetBackgroundDrawList()->AddRect(ImVec2{ min.x - 1.0f, min.y - 1.0f }, ImVec2{ max.x + 1.0f, max.y + 1.0f }, ImGui::GetColorU32(espSettings->boxesOutlineColor));
-        ImGui::GetBackgroundDrawList()->AddRect(ImVec2{ min.x + 1.0f, min.y + 1.0f }, ImVec2{ max.x - 1.0f, max.y - 1.0f }, ImGui::GetColorU32(espSettings->boxesOutlineColor));
-        ImGui::GetBackgroundDrawList()->AddRect(min, max, ImGui::GetColorU32(espSettings->boxesColor));
+        // Use highlight color if this is the locked target
+        ImU32 boxColor = isLockedTarget ? ImGui::GetColorU32(Aimbot::settings.targetHighlightColor) 
+                                        : ImGui::GetColorU32(espSettings->boxesColor);
+        ImU32 outlineColor = ImGui::GetColorU32(espSettings->boxesOutlineColor);
+        
+        ImGui::GetBackgroundDrawList()->AddRect(ImVec2{ min.x - 1.0f, min.y - 1.0f }, ImVec2{ max.x + 1.0f, max.y + 1.0f }, outlineColor);
+        ImGui::GetBackgroundDrawList()->AddRect(ImVec2{ min.x + 1.0f, min.y + 1.0f }, ImVec2{ max.x - 1.0f, max.y - 1.0f }, outlineColor);
+        ImGui::GetBackgroundDrawList()->AddRect(min, max, boxColor);
     }
 
 
@@ -804,19 +954,19 @@ void RenderEnemyAgent(Enemy::EnemyInfo* enemyInfo, ESP::AgentESPSection* espSett
             switch (enemyInfo->enemyAgent->fields.EnemyData->fields._EnemyType_k__BackingField)
             {
             case app::eEnemyType__Enum::Weakling:
-                enemyType = "Weakling";
+                enemyType = I18N::T("ingame_weakling");
                 break;
             case app::eEnemyType__Enum::Standard:
-                enemyType = "Standard";
+                enemyType = I18N::T("ingame_standard");
                 break;
             case app::eEnemyType__Enum::Special:
-                enemyType = "Special";
+                enemyType = I18N::T("ingame_special");
                 break;
             case app::eEnemyType__Enum::MiniBoss:
-                enemyType = "MiniBoss";
+                enemyType = I18N::T("ingame_miniboss");
                 break;
             case app::eEnemyType__Enum::Boss:
-                enemyType = "Boss";
+                enemyType = I18N::T("ingame_boss");
                 break;
             }
         }
@@ -827,18 +977,36 @@ void RenderEnemyAgent(Enemy::EnemyInfo* enemyInfo, ESP::AgentESPSection* espSett
         float center = (min.x + max.x) / 2.0f;
         ImVec2 topCenter = { center, min.y };
         ImVec2 bottomCenter = { center, max.y };
+        
+        // Calculate text positions from top of box upward
+        float currentY = topCenter.y;
+        
         ImVec2 typeTextSize = ImVec2();
         if (espSettings->showType)
-            typeTextSize = RenderESPText(topCenter, color, outlineColor, enemyType, true, true);
+        {
+            typeTextSize = RenderESPText(ImVec2(topCenter.x, currentY), color, outlineColor, enemyType, true, true);
+            currentY -= typeTextSize.y;
+        }
         if (espSettings->showName)
-            RenderESPText(ImVec2(topCenter.x, topCenter.y - typeTextSize.y), color, outlineColor, enemyName, true, true);
+        {
+            ImVec2 nameTextSize = RenderESPText(ImVec2(topCenter.x, currentY), color, outlineColor, enemyName, true, true);
+            currentY -= nameTextSize.y;
+        }
+        
+        // Show [LOCKED] marker above everything else
+        if (isLockedTarget && Aimbot::settings.targetHighlightMarker)
+        {
+            ImU32 lockedColor = ImGui::GetColorU32(Aimbot::settings.targetHighlightColor);
+            RenderESPText(ImVec2(topCenter.x, currentY), lockedColor, outlineColor, 
+                std::string("[") + I18N::T("esp_locked") + "]", true, true);
+        }
 
 
         ImVec2 distanceTextSize = ImVec2();
         if (espSettings->showDistance)
             distanceTextSize = RenderESPText(bottomCenter, color, outlineColor, "[" + std::to_string(llround(enemyInfo->distance)) + "m]", true, false);
         if (espSettings->showHealth)
-            RenderESPText(ImVec2(bottomCenter.x, bottomCenter.y + distanceTextSize.y), color, outlineColor, "HP: " + enemyHealth, true, false);
+            RenderESPText(ImVec2(bottomCenter.x, bottomCenter.y + distanceTextSize.y), color, outlineColor, std::string(I18N::T("ingame_hp")) + ": " + enemyHealth, true, false);
 
     }
 
@@ -912,29 +1080,34 @@ void RenderESP()
     if (ESP::worldESPToggleKey.isToggled())
         RenderWorldESP();
     if (Aimbot::settings.toggleKey.isToggled())
+    {
         RenderAimbotESP();
+        Aimbot::RenderHitGhosts();   // Render magic bullet hit ghost effects
+        Aimbot::RenderBulletRays();  // Render magic bullet trajectory rays
+    }
 }
 
 void DrawMenu()
 {
     static int page = 0;
-
+    static const int TAB_COUNT = 5;
 
     ImGui::Begin("GTFO Hax");
-    for (int i = 0; i < IM_ARRAYSIZE(tabs); i++)
+    for (int i = 0; i < TAB_COUNT; i++)
     {
+        const char* tabName = GetTab(i);
         if (i == page)
         {
             ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor::HSV(7.0f, 0.6f, 0.6f));
             ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)ImColor::HSV(7.0f, 0.7f, 0.7f));
             ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)ImColor::HSV(7.0f, 0.8f, 0.8f));
-            ImGui::Button(tabs[i], ImVec2(ImGui::GetWindowSize().x / IM_ARRAYSIZE(tabs) - 9, 0));
+            ImGui::Button(tabName, ImVec2(ImGui::GetWindowSize().x / TAB_COUNT - 9, 0));
             ImGui::PopStyleColor(3);
         }
-        else if (ImGui::Button(tabs[i], ImVec2(ImGui::GetWindowSize().x / IM_ARRAYSIZE(tabs) - 9, 0)))
+        else if (ImGui::Button(tabName, ImVec2(ImGui::GetWindowSize().x / TAB_COUNT - 9, 0)))
             page = i;
 
-        if (i < IM_ARRAYSIZE(tabs) - 1)
+        if (i < TAB_COUNT - 1)
             ImGui::SameLine();
     }
 
