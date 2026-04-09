@@ -1,4 +1,5 @@
 #include "enemy.h"
+#include <cmath>
 #include <iostream>
 #include <set>
 #include <helpers.h>
@@ -255,7 +256,7 @@ namespace Enemy
         if (app::Physics_Raycast_14(screenCenterRay, &raycastHit, 200, NULL))
         {
             app::EnemyAllocator_ResetAllowedToSpawn(NULL);
-            app::EnemyAllocator_SpawnEnemy(enemyAllocator, id, courseNode, agentMode, raycastHit.m_Point, playerRotation, NULL, NULL, NULL);
+            app::EnemyAllocator_SpawnEnemy(enemyAllocator, id, courseNode, agentMode, raycastHit.m_Point, playerRotation, nullptr, 0, nullptr);
         }
     }
 

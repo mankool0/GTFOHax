@@ -1,5 +1,5 @@
 #include "i18n.h"
-#include <Windows.h>
+#include <windows.h>
 
 namespace I18N {
     static Language currentLanguage = Language::English;
@@ -56,6 +56,10 @@ namespace I18N {
         {"aimbot_silent_aim", {{Language::English, "Silent Aim"}, {Language::Chinese, "静默自瞄"}}},
         {"aimbot_magic_bullet", {{Language::English, "Magic Bullet"}, {Language::Chinese, "魔法子弹"}}},
         {"aimbot_magic_bullet_direction", {{Language::English, "Direction"}, {Language::Chinese, "射击方向"}}},
+        {"aimbot_magic_bullet_dir_above", {{Language::English, "From Above"}, {Language::Chinese, "从上方"}}},
+        {"aimbot_magic_bullet_dir_front", {{Language::English, "From Front"}, {Language::Chinese, "从正面"}}},
+        {"aimbot_magic_bullet_dir_behind", {{Language::English, "From Behind"}, {Language::Chinese, "从后方"}}},
+        {"aimbot_magic_bullet_dir_player", {{Language::English, "From Player"}, {Language::Chinese, "从玩家"}}},
         {"aimbot_magic_bullet_offset", {{Language::English, "Offset"}, {Language::Chinese, "偏移距离"}}},
         {"aimbot_hit_ghost", {{Language::English, "Hit Ghost"}, {Language::Chinese, "命中残影"}}},
         {"aimbot_hit_ghost_duration", {{Language::English, "Duration"}, {Language::Chinese, "持续时间"}}},

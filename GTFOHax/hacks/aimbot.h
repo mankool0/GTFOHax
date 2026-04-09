@@ -108,7 +108,6 @@ namespace Aimbot
     };
     
     // Magic bullet shooting direction options
-    static const char* MagicBulletDirItems[] = { "From Above", "From Front", "From Behind", "From Player" };
     enum MagicBulletDirection
     {
         FromAbove = 0,   // Default: shoot from above the target, downward

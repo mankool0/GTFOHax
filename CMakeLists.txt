@@ -154,8 +154,33 @@ target_link_options(GTFOHaxDLL PRIVATE
     $<$<CONFIG:Release>:-s>
 )
 
+# Copy the built DLL to the source root as "GTFOHax.dll" for resource embedding
+set(INJECTOR_DLL_COPY ${CMAKE_CURRENT_SOURCE_DIR}/GTFOHax.dll)
+add_custom_command(
+    OUTPUT ${INJECTOR_DLL_COPY}
+    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:GTFOHaxDLL> ${INJECTOR_DLL_COPY}
+    DEPENDS GTFOHaxDLL
+    COMMENT "Copying GTFOHax.dll for resource embedding"
+)
+
+# Compile resource file with windres
+set(RC_OBJ ${CMAKE_CURRENT_BINARY_DIR}/injector_rc.o)
+add_custom_command(
+    OUTPUT ${RC_OBJ}
+    COMMAND ${CMAKE_RC_COMPILER}
+        -I ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_CURRENT_SOURCE_DIR}/injector.rc
+        -o ${RC_OBJ}
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/injector.rc ${INJECTOR_DLL_COPY}
+    COMMENT "Compiling injector resources"
+)
+
 # Injector executable
-add_executable(injector ${CMAKE_CURRENT_SOURCE_DIR}/injector.cpp)
+add_executable(injector
+    ${CMAKE_CURRENT_SOURCE_DIR}/injector.cpp
+    ${RC_OBJ}
+)
 
 target_compile_options(injector PRIVATE
     -static-libgcc

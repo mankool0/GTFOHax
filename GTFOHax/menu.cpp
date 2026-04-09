@@ -344,7 +344,13 @@ void RenderTabAimbot()
         ImGui::SameLine();
         int* magicBulletDir = reinterpret_cast<int*>(&Aimbot::settings.magicBulletDirection);
         ImGui::PushItemWidth(150);
-        ImGui::Combo("##MagicBulletDirection", magicBulletDir, Aimbot::MagicBulletDirItems, IM_ARRAYSIZE(Aimbot::MagicBulletDirItems));
+        const char* dirItems[] = {
+            I18N::T("aimbot_magic_bullet_dir_above"),
+            I18N::T("aimbot_magic_bullet_dir_front"),
+            I18N::T("aimbot_magic_bullet_dir_behind"),
+            I18N::T("aimbot_magic_bullet_dir_player"),
+        };
+        ImGui::Combo("##MagicBulletDirection", magicBulletDir, dirItems, IM_ARRAYSIZE(dirItems));
         ImGui::PopItemWidth();
         
         // Offset distance

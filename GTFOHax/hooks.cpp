@@ -6,6 +6,7 @@
 #include "fonts/fonts.h"
 
 #include <algorithm>
+#include <cmath>
 #include <iostream>
 #include <map>
 #include <string>
@@ -995,17 +996,8 @@ HRESULT __stdcall Hooks::hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval
             ImFontConfig config;
             config.FontBuilderFlags |= ImGuiFreeTypeBuilderFlags::ImGuiFreeTypeBuilderFlags_ForceAutoHint;
             
-            // Build custom glyph ranges including all needed Chinese characters
-            static const ImWchar ranges[] = {
-                0x0020, 0x00FF, // Basic Latin + Latin Supplement
-                0x2000, 0x206F, // General Punctuation
-                0x3000, 0x30FF, // CJK Symbols and Punctuations, Hiragana, Katakana
-                0x31F0, 0x31FF, // Katakana Phonetic Extensions
-                0xFF00, 0xFFEF, // Half-width characters
-                0x4e00, 0x9FAF, // CJK Ideograms
-                0, 0 // Terminator (must be a zero pair)
-            };
-            
+            const ImWchar* chineseRanges = io.Fonts->GetGlyphRangesChineseFull();
+
             // Try multiple Chinese fonts in order of preference
             const char* chineseFonts[] = {
                 "C:\\Windows\\Fonts\\msyh.ttc",    // Microsoft YaHei (Win7+)
@@ -1014,41 +1006,30 @@ HRESULT __stdcall Hooks::hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval
                 "C:\\Windows\\Fonts\\msyhl.ttc",   // YaHei Light
                 "C:\\Windows\\Fonts\\simkai.ttf",  // KaiTi
             };
-            
-            ImFont* fontWithChinese = nullptr;
+
+            const char* loadedFontPath = nullptr;
+            ImFont* menuFont = nullptr;
             for (const char* fontPath : chineseFonts) {
-                fontWithChinese = io.Fonts->AddFontFromFileTTF(fontPath, 16.0f, &config, ranges);
-                if (fontWithChinese) break;
+                // Check existence before calling AddFontFromFileTTF — it fires an assert on missing files
+                if (FILE* f = fopen(fontPath, "rb")) {
+                    fclose(f);
+                    menuFont = io.Fonts->AddFontFromFileTTF(fontPath, 16.0f, &config, chineseRanges);
+                    if (menuFont) {
+                        loadedFontPath = fontPath;
+                        break;
+                    }
+                }
             }
-            
-            // If all system fonts fail, use embedded font (no Chinese support)
-            if (fontWithChinese) {
-                G::defaultFont = fontWithChinese;
+
+            if (loadedFontPath) {
+                G::defaultFont = menuFont;
+                G::espFont = io.Fonts->AddFontFromFileTTF(loadedFontPath, 14.0f, &config, chineseRanges);
                 G::chineseFontAvailable = true;
             } else {
-                G::defaultFont = io.Fonts->AddFontFromMemoryCompressedBase85TTF(
-                    Fonts::GetRobotoFontDataTTFBase85(), 
-                    16, 
-                    &config
-                );
-                G::chineseFontAvailable = false;
-            }
-            
-            // ESP font - try same fonts
-            ImFont* espFontWithChinese = nullptr;
-            for (const char* fontPath : chineseFonts) {
-                espFontWithChinese = io.Fonts->AddFontFromFileTTF(fontPath, 14.0f, &config, ranges);
-                if (espFontWithChinese) break;
-            }
-            
-            if (espFontWithChinese) {
-                G::espFont = espFontWithChinese;
-            } else {
+                G::defaultFont = io.Fonts->AddFontDefault();
                 G::espFont = io.Fonts->AddFontFromMemoryCompressedBase85TTF(
-                    Fonts::GetRobotoFontDataTTFBase85(), 
-                    14, 
-                    &config
-                );
+                    Fonts::GetRobotoFontDataTTFBase85(), 14, &config);
+                G::chineseFontAvailable = false;
             }
             
             unsigned char* pixels;

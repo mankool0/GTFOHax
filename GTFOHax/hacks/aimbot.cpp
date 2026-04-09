@@ -107,7 +107,7 @@ namespace Aimbot
         std::lock_guard<std::mutex> lock(bulletRayMtx);
         bulletRays.emplace_back(startPos, endPos, settings.bulletRayDuration);
         
-        // Limit max number of rays to prevent memory issues
+        // Limit max number of rays to prevent visual clutter
         if (bulletRays.size() > 50)
         {
             bulletRays.erase(bulletRays.begin());
