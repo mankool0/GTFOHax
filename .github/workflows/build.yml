@@ -27,6 +27,7 @@ jobs:
           msbuild GTFOHax.sln
           /p:Configuration=Release
           /p:Platform=x64
+          /p:PlatformToolset=v143
           /p:VcpkgEnableManifest=true
           /m
         env:
