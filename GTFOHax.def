@@ -1,0 +1,3 @@
+LIBRARY GTFOHax
+EXPORTS
+    DllMain

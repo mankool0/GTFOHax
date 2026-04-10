@@ -46,8 +46,7 @@ jobs:
       - name: Install MinGW toolchain
         run: |
           sudo apt-get update -q
-          sudo apt-get install -y mingw-w64 cmake ninja-build lld
-          sudo ln -sf /usr/bin/ld.lld /usr/bin/x86_64-w64-mingw32-ld.lld
+          sudo apt-get install -y mingw-w64 cmake ninja-build
 
       - name: Configure
         run: >
