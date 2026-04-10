@@ -155,8 +155,11 @@ target_link_options(GTFOHaxDLL PRIVATE
     $<$<CONFIG:Release>:-s>
 )
 
-# Copy the built DLL to the source root as "GTFOHax.dll" for resource embedding
-set(INJECTOR_DLL_COPY ${CMAKE_CURRENT_SOURCE_DIR}/GTFOHax.dll)
+# Copy DLL and RC resources into build dir so nothing lands in the source tree
+set(INJECTOR_DLL_COPY ${CMAKE_CURRENT_BINARY_DIR}/GTFOHax.dll)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/injector.rc ${CMAKE_CURRENT_BINARY_DIR}/injector.rc COPYONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/resource.h  ${CMAKE_CURRENT_BINARY_DIR}/resource.h  COPYONLY)
+
 add_custom_command(
     OUTPUT ${INJECTOR_DLL_COPY}
     COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:GTFOHaxDLL> ${INJECTOR_DLL_COPY}
@@ -164,16 +167,16 @@ add_custom_command(
     COMMENT "Copying GTFOHax.dll for resource embedding"
 )
 
-# Compile resource file with windres
+# Compile resource file with windres (runs from build dir so "GTFOHax.dll" resolves there)
 set(RC_OBJ ${CMAKE_CURRENT_BINARY_DIR}/injector_rc.o)
 add_custom_command(
     OUTPUT ${RC_OBJ}
     COMMAND ${CMAKE_RC_COMPILER}
-        -I ${CMAKE_CURRENT_SOURCE_DIR}
-        ${CMAKE_CURRENT_SOURCE_DIR}/injector.rc
+        -I ${CMAKE_CURRENT_BINARY_DIR}
+        ${CMAKE_CURRENT_BINARY_DIR}/injector.rc
         -o ${RC_OBJ}
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/injector.rc ${INJECTOR_DLL_COPY}
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/injector.rc ${INJECTOR_DLL_COPY}
     COMMENT "Compiling injector resources"
 )
 
