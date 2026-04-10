@@ -97,7 +97,6 @@ add_library(GTFOHaxDLL SHARED
     ${IMGUI_SOURCES}
     ${IMGUI_BACKEND_SOURCES}
     ${KIERO_SOURCES}
-    GTFOHax.def
 )
 
 target_include_directories(GTFOHaxDLL PRIVATE
