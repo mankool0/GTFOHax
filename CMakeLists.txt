@@ -149,6 +149,7 @@ target_link_options(GTFOHaxDLL PRIVATE
     -Wl,--subsystem,windows
     -Wl,--enable-runtime-pseudo-reloc
     -Wl,--exclude-libs,ALL
+    -Wl,--no-export-all-symbols
     -static
     -pthread
     $<$<CONFIG:Release>:-s>
