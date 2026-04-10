@@ -1,0 +1,59 @@
+name: Build
+
+on:
+  push:
+    branches: ["master"]
+  pull_request:
+
+jobs:
+  build-windows:
+    name: Windows (MSVC x64)
+    runs-on: windows-2025-vs2026
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - name: Setup vcpkg integration
+        run: vcpkg integrate install
+        working-directory: C:\vcpkg
+
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v3
+
+      - name: Build (Release|x64)
+        run: >
+          msbuild GTFOHax.sln
+          /p:Configuration=Release
+          /p:Platform=x64
+          /p:VcpkgEnableManifest=true
+          /m
+        env:
+          VCPKG_ROOT: C:\vcpkg
+
+  build-linux:
+    name: Linux (MinGW cross-compile)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - name: Install MinGW toolchain
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y mingw-w64 cmake ninja-build
+
+      - name: Configure
+        run: >
+          cmake -S . -B build-ci
+          -G Ninja
+          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_TOOLCHAIN_FILE=mingw-toolchain.cmake
+
+      - name: Build
+        run: cmake --build build-ci --parallel
