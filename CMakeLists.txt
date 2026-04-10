@@ -119,6 +119,7 @@ target_compile_options(GTFOHaxDLL PRIVATE
     -static-libstdc++
     -fpermissive
     -Wno-narrowing
+    -fvisibility=hidden
     $<$<CONFIG:Debug>:-g -ggdb -gdwarf-4 -O0 -fno-omit-frame-pointer -fno-optimize-sibling-calls>
     $<$<CONFIG:Release>:-O2 -s>
 )
@@ -149,7 +150,6 @@ target_link_options(GTFOHaxDLL PRIVATE
     -Wl,--subsystem,windows
     -Wl,--enable-runtime-pseudo-reloc
     -Wl,--exclude-libs,ALL
-    -Wl,--no-export-all-symbols
     -static
     -pthread
     $<$<CONFIG:Release>:-s>
