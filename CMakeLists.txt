@@ -97,6 +97,7 @@ add_library(GTFOHaxDLL SHARED
     ${IMGUI_SOURCES}
     ${IMGUI_BACKEND_SOURCES}
     ${KIERO_SOURCES}
+    GTFOHax.def
 )
 
 target_include_directories(GTFOHaxDLL PRIVATE
@@ -119,7 +120,6 @@ target_compile_options(GTFOHaxDLL PRIVATE
     -static-libstdc++
     -fpermissive
     -Wno-narrowing
-    -fvisibility=hidden
     $<$<CONFIG:Debug>:-g -ggdb -gdwarf-4 -O0 -fno-omit-frame-pointer -fno-optimize-sibling-calls>
     $<$<CONFIG:Release>:-O2 -s>
 )
