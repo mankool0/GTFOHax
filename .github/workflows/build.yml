@@ -8,7 +8,7 @@ on:
 jobs:
   build-windows:
     name: Windows (MSVC x64)
-    runs-on: windows-latest
+    runs-on: windows-2025-vs2026
 
     steps:
       - name: Checkout
@@ -28,7 +28,6 @@ jobs:
           msbuild GTFOHax.sln
           /p:Configuration=Release
           /p:Platform=x64
-          /p:PlatformToolset=v143
           /p:VcpkgEnableManifest=true
           /m
         env:
