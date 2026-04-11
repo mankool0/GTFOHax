@@ -16,6 +16,17 @@ namespace Player
     extern KeyBindToggle noFogToggleKey;
     extern KeyBindToggle fullBrightToggleKey;
 
+    extern bool outgoingDamageEnabled;
+    extern float outgoingDamageMulti;
+    extern bool localDamageEnabled;
+    extern float localDamageMulti;
+    extern bool teamDamageEnabled;
+    extern float teamDamageMulti;
+    extern KeyBindToggle forceWeakspotToggleKey;
+    extern bool turretDamageEnabled;
+    extern float turretDamageMulti;
+    extern bool turretLocalOnly;
+
     extern KeyBind giveHealthKey;
     extern KeyBind giveDisinKey;
     extern KeyBind giveAmmoKey;

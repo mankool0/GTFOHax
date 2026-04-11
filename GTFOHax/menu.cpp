@@ -155,6 +155,43 @@ void RenderTabPlayer()
         ImGui::Unindent();
     }
 
+    ImGui::SeparatorText(I18N::T("player_damage_multipliers"));
+    ImGui::Checkbox(I18N::T("player_damage_enemy"), &Player::outgoingDamageEnabled);
+    if (Player::outgoingDamageEnabled)
+    {
+        ImGui::Indent();
+        ImGui::SliderFloat("##EnemyDmgMulti", &Player::outgoingDamageMulti, 0.1f, 100.0f);
+        ImGui::Unindent();
+    }
+    ImGui::Checkbox(I18N::T("player_damage_received_self"), &Player::localDamageEnabled);
+    if (Player::localDamageEnabled)
+    {
+        ImGui::Indent();
+        ImGui::SliderFloat("##SelfDmgMulti", &Player::localDamageMulti, 0.0f, 100.0f);
+        ImGui::Unindent();
+    }
+    ImGui::Checkbox(I18N::T("player_damage_received_team"), &Player::teamDamageEnabled);
+    if (Player::teamDamageEnabled)
+    {
+        ImGui::Indent();
+        ImGui::SliderFloat("##TeamDmgMulti", &Player::teamDamageMulti, 0.0f, 100.0f);
+        ImGui::Unindent();
+    }
+    ImGui::Checkbox(I18N::T("player_force_weakspot"), &Player::forceWeakspotToggleKey.toggledOn);
+    ImGui::SameLine();
+    ImGui::PushID("ForceWeakspotHotkey");
+    ImGui::Hotkey("", Player::forceWeakspotToggleKey);
+    ImGui::PopID();
+    ImGui::Checkbox(I18N::T("player_turret_damage"), &Player::turretDamageEnabled);
+    if (Player::turretDamageEnabled)
+    {
+        ImGui::Indent();
+        ImGui::SliderFloat("##TurretDmgMulti", &Player::turretDamageMulti, 0.1f, 100.0f);
+        ImGui::Checkbox(I18N::T("player_turret_local_only"), &Player::turretLocalOnly);
+        ImGui::Unindent();
+    }
+
+    ImGui::Separator();
     if (ImGui::Button("Give Health"))
     if (ImGui::Button(I18N::T("player_give_health")))
         Player::GiveLocalHealth();

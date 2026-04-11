@@ -47,6 +47,10 @@ namespace Hooks
         float staggerDamageMulti, app::DamageNoiseLevel__Enum damageNoiseLevel,
         uint32_t gearCategoryId, MethodInfo* method);
 
+    float hkArchetypeDataBlock_GetSentryDamage(app::ArchetypeDataBlock* __this, app::PlayerAgent* owner, float distance, bool targetIsTagged, MethodInfo* method);
+    float hkDam_EnemyDamageLimb_ApplyWeakspotAndArmorModifiers(app::Dam_EnemyDamageLimb* __this, float dam, float precisionMulti, MethodInfo* method);
+    float hkDam_EnemyDamageLimb_Custom_ApplyWeakspotAndArmorModifiers(app::Dam_EnemyDamageLimb_Custom* __this, float dam, float precisionMulti, MethodInfo* method);
+
     void hkPreLitVolume_Update(app::PreLitVolume* __this, MethodInfo* method);
     void hkRenderPipe_CameraUpdate(app::Camera* camera, app::RenderPipe_CameraData* cameraData, MethodInfo* method);
 }
