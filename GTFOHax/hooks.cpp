@@ -230,12 +230,12 @@ bool Hooks::hkDam_PlayerDamageBase_OnIncomingDamage(app::Dam_PlayerDamageBase* _
     {
         auto agent = app::Dam_PlayerDamageBase_GetBaseAgent(__this, nullptr);
         bool isLocal = (agent == reinterpret_cast<app::Agent*>(G::localPlayer));
-        if (isLocal && Player::localDamageEnabled)
+        if (isLocal && Player::localDamageToggleKey.isToggled())
         {
             damage *= Player::localDamageMulti;
             originalDamage *= Player::localDamageMulti;
         }
-        else if (!isLocal && Player::teamDamageEnabled)
+        else if (!isLocal && Player::teamDamageToggleKey.isToggled())
         {
             damage *= Player::teamDamageMulti;
             originalDamage *= Player::teamDamageMulti;
@@ -1052,7 +1052,7 @@ bool Hooks::hkDam_EnemyDamageBase_ProcessReceivedDamage(app::Dam_EnemyDamageBase
 {
     static auto fpOFunc = reinterpret_cast<bool (*)(app::Dam_EnemyDamageBase*, float, app::Agent*, app::Vector3, app::Vector3, app::ES_HitreactType__Enum, bool, int32_t, float, app::DamageNoiseLevel__Enum, uint32_t, MethodInfo*)>(hooks["Dam_EnemyDamageBase_ProcessReceivedDamage"]);
 
-    if (Player::outgoingDamageEnabled && damageSource == reinterpret_cast<app::Agent*>(G::localPlayer))
+    if (Player::outgoingDamageToggleKey.isToggled() && damageSource == reinterpret_cast<app::Agent*>(G::localPlayer))
     {
         if (damage == 0.0f && s_pendingBulletDamage > 0.0f)
             damage = s_pendingBulletDamage;  // recover from UFloat16 underflow (e.g. Immortal's HealthMax=9999999)
@@ -1077,7 +1077,7 @@ float Hooks::hkArchetypeDataBlock_GetSentryDamage(app::ArchetypeDataBlock* __thi
     static auto fpOFunc = reinterpret_cast<float (*)(app::ArchetypeDataBlock*, app::PlayerAgent*, float, bool, MethodInfo*)>(hooks["ArchetypeDataBlock_GetSentryDamage"]);
     float result = fpOFunc(__this, owner, distance, targetIsTagged, method);
 
-    if (Player::turretDamageEnabled)
+    if (Player::turretDamageToggleKey.isToggled())
     {
         bool isLocal = (reinterpret_cast<app::Agent*>(owner) == reinterpret_cast<app::Agent*>(G::localPlayer));
         if (!Player::turretLocalOnly || isLocal)

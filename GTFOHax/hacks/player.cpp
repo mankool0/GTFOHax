@@ -16,14 +16,14 @@ namespace Player
     KeyBindToggle noFogToggleKey;
     KeyBindToggle fullBrightToggleKey;
 
-    bool outgoingDamageEnabled = false;
+    KeyBindToggle outgoingDamageToggleKey;
     float outgoingDamageMulti  = 2.0f;
-    bool localDamageEnabled    = false;
+    KeyBindToggle localDamageToggleKey;
     float localDamageMulti     = 0.5f;
-    bool teamDamageEnabled     = false;
+    KeyBindToggle teamDamageToggleKey;
     float teamDamageMulti      = 0.5f;
     KeyBindToggle forceWeakspotToggleKey;
-    bool turretDamageEnabled   = false;
+    KeyBindToggle turretDamageToggleKey;
     float turretDamageMulti    = 2.0f;
     bool turretLocalOnly       = true;
 
@@ -50,6 +50,10 @@ namespace Player
         noFogToggleKey.handleToggle();
         fullBrightToggleKey.handleToggle();
         forceWeakspotToggleKey.handleToggle();
+        outgoingDamageToggleKey.handleToggle();
+        localDamageToggleKey.handleToggle();
+        teamDamageToggleKey.handleToggle();
+        turretDamageToggleKey.handleToggle();
 
         if (giveHealthKey.isPressed())
             GiveLocalHealth();

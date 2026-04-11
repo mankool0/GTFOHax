@@ -258,14 +258,14 @@ void Config::Save()
             {"FullBrightIntensity", Player::fullBrightIntensity},
             {"FullBrightAngle", Player::fullBrightAngle},
             {"FullBrightColor", Player::fullBrightColor},
-            {"OutgoingDamageEnabled", Player::outgoingDamageEnabled},
+            {"OutgoingDamageToggleKey", Player::outgoingDamageToggleKey},
             {"OutgoingDamageMulti", Player::outgoingDamageMulti},
-            {"LocalDamageEnabled", Player::localDamageEnabled},
+            {"LocalDamageToggleKey", Player::localDamageToggleKey},
             {"LocalDamageMulti", Player::localDamageMulti},
-            {"TeamDamageEnabled", Player::teamDamageEnabled},
+            {"TeamDamageToggleKey", Player::teamDamageToggleKey},
             {"TeamDamageMulti", Player::teamDamageMulti},
             {"ForceWeakspotToggleKey", Player::forceWeakspotToggleKey},
-            {"TurretDamageEnabled", Player::turretDamageEnabled},
+            {"TurretDamageToggleKey", Player::turretDamageToggleKey},
             {"TurretDamageMulti", Player::turretDamageMulti},
             {"TurretLocalOnly", Player::turretLocalOnly},
             {"GiveHealthKey", Player::giveHealthKey},
@@ -321,14 +321,14 @@ void Config::Load()
         JSON_GET("FullBrightIntensity", Player::fullBrightIntensity);
         JSON_GET("FullBrightAngle", Player::fullBrightAngle);
         JSON_GET("FullBrightColor", Player::fullBrightColor);
-        JSON_GET("OutgoingDamageEnabled", Player::outgoingDamageEnabled);
+        JSON_GET("OutgoingDamageToggleKey", Player::outgoingDamageToggleKey);
         JSON_GET("OutgoingDamageMulti", Player::outgoingDamageMulti);
-        JSON_GET("LocalDamageEnabled", Player::localDamageEnabled);
+        JSON_GET("LocalDamageToggleKey", Player::localDamageToggleKey);
         JSON_GET("LocalDamageMulti", Player::localDamageMulti);
-        JSON_GET("TeamDamageEnabled", Player::teamDamageEnabled);
+        JSON_GET("TeamDamageToggleKey", Player::teamDamageToggleKey);
         JSON_GET("TeamDamageMulti", Player::teamDamageMulti);
         JSON_GET("ForceWeakspotToggleKey", Player::forceWeakspotToggleKey);
-        JSON_GET("TurretDamageEnabled", Player::turretDamageEnabled);
+        JSON_GET("TurretDamageToggleKey", Player::turretDamageToggleKey);
         JSON_GET("TurretDamageMulti", Player::turretDamageMulti);
         JSON_GET("TurretLocalOnly", Player::turretLocalOnly);
         JSON_GET("GiveHealthKey", Player::giveHealthKey);
