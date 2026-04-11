@@ -59,7 +59,7 @@ std::optional<fs::path> ExtractDLL() {
     wchar_t tempFile[MAX_PATH];
     GetTempPathW(MAX_PATH, tempPath);
     GetTempFileNameW(tempPath, L"GTF", 0, tempFile);
-    
+
     fs::path dllPath(tempFile);
     dllPath.replace_extension(L".dll");
 
@@ -125,34 +125,62 @@ bool InjectDLL(DWORD targetPID, const fs::path& dllPath) {
 }
 
 int WINAPI wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int) {
-    // Extract DLL
-    auto dllPath = ExtractDLL();
-    if (!dllPath) {
-        MessageBoxW(nullptr, L"Failed to extract DLL from resources", 
-                   L"Error", MB_OK | MB_ICONERROR);
-        return 1;
+    // Parse command line for an explicit DLL path (ends with .dll).
+    // Usage: injector.exe [GTFO.exe] [path\to\GTFOHax.dll]
+    // If provided, inject from that path directly (leaves file on disk, useful for debugging).
+    // Otherwise extract the embedded DLL to a temp file and delete it after injection.
+    bool usedEmbedded = false;
+    std::optional<fs::path> dllPath;
+
+    int argc = 0;
+    LPWSTR* argv = CommandLineToArgvW(GetCommandLineW(), &argc);
+    if (argv) {
+        for (int i = 1; i < argc; ++i) {
+            std::wstring arg(argv[i]);
+            if (arg.size() > 4 && _wcsicmp(arg.c_str() + arg.size() - 4, L".dll") == 0) {
+                dllPath = fs::path(arg);
+                break;
+            }
+        }
+        LocalFree(argv);
+    }
+
+    if (dllPath) {
+        if (!fs::exists(*dllPath)) {
+            MessageBoxW(nullptr, (L"DLL not found:\n" + dllPath->wstring()).c_str(),
+                       L"Error", MB_OK | MB_ICONERROR);
+            return 1;
+        }
+    } else {
+        dllPath = ExtractDLL();
+        usedEmbedded = true;
+        if (!dllPath) {
+            MessageBoxW(nullptr, L"Failed to extract DLL from resources",
+                       L"Error", MB_OK | MB_ICONERROR);
+            return 1;
+        }
     }
 
     // Find process
     auto pid = FindProcess(L"GTFO.exe");
     if (!pid) {
-        MessageBoxW(nullptr, L"GTFO.exe is not running", 
+        if (usedEmbedded) DeleteFileW(dllPath->c_str());
+        MessageBoxW(nullptr, L"GTFO.exe is not running",
                    L"Error", MB_OK | MB_ICONERROR);
         return 1;
     }
 
     // Inject
     bool success = InjectDLL(*pid, *dllPath);
-    
-    // Cleanup temp DLL file
-    DeleteFileW(dllPath->c_str());
-    
+
+    if (usedEmbedded) DeleteFileW(dllPath->c_str());
+
     if (success) {
-        MessageBoxW(nullptr, L"Injection successful!", 
+        MessageBoxW(nullptr, L"Injection successful!",
                    L"Success", MB_OK | MB_ICONINFORMATION);
         return 0;
     } else {
-        MessageBoxW(nullptr, L"Injection failed\n\nTry running as Administrator", 
+        MessageBoxW(nullptr, L"Injection failed\n\nTry running as Administrator",
                    L"Error", MB_OK | MB_ICONERROR);
         return 1;
     }

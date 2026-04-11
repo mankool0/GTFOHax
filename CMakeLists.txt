@@ -156,7 +156,9 @@ target_link_options(GTFOHaxDLL PRIVATE
 )
 
 # Copy DLL and RC resources into build dir so nothing lands in the source tree
-set(INJECTOR_DLL_COPY ${CMAKE_CURRENT_BINARY_DIR}/GTFOHax.dll)
+# Use a fixed intermediate name so it never collides with the DLL output name
+# (in Debug the DLL is already GTFOHax.dll, causing a circular dependency if we copy to the same name)
+set(INJECTOR_DLL_COPY ${CMAKE_CURRENT_BINARY_DIR}/GTFOHax_embed.dll)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/injector.rc ${CMAKE_CURRENT_BINARY_DIR}/injector.rc COPYONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/resource.h  ${CMAKE_CURRENT_BINARY_DIR}/resource.h  COPYONLY)
 

@@ -258,6 +258,16 @@ void Config::Save()
             {"FullBrightIntensity", Player::fullBrightIntensity},
             {"FullBrightAngle", Player::fullBrightAngle},
             {"FullBrightColor", Player::fullBrightColor},
+            {"OutgoingDamageToggleKey", Player::outgoingDamageToggleKey},
+            {"OutgoingDamageMulti", Player::outgoingDamageMulti},
+            {"LocalDamageToggleKey", Player::localDamageToggleKey},
+            {"LocalDamageMulti", Player::localDamageMulti},
+            {"TeamDamageToggleKey", Player::teamDamageToggleKey},
+            {"TeamDamageMulti", Player::teamDamageMulti},
+            {"ForceWeakspotToggleKey", Player::forceWeakspotToggleKey},
+            {"TurretDamageToggleKey", Player::turretDamageToggleKey},
+            {"TurretDamageMulti", Player::turretDamageMulti},
+            {"TurretLocalOnly", Player::turretLocalOnly},
             {"GiveHealthKey", Player::giveHealthKey},
             {"GiveDisinKey", Player::giveDisinKey},
             {"GiveAmmoKey", Player::giveAmmoKey},
@@ -311,6 +321,16 @@ void Config::Load()
         JSON_GET("FullBrightIntensity", Player::fullBrightIntensity);
         JSON_GET("FullBrightAngle", Player::fullBrightAngle);
         JSON_GET("FullBrightColor", Player::fullBrightColor);
+        JSON_GET("OutgoingDamageToggleKey", Player::outgoingDamageToggleKey);
+        JSON_GET("OutgoingDamageMulti", Player::outgoingDamageMulti);
+        JSON_GET("LocalDamageToggleKey", Player::localDamageToggleKey);
+        JSON_GET("LocalDamageMulti", Player::localDamageMulti);
+        JSON_GET("TeamDamageToggleKey", Player::teamDamageToggleKey);
+        JSON_GET("TeamDamageMulti", Player::teamDamageMulti);
+        JSON_GET("ForceWeakspotToggleKey", Player::forceWeakspotToggleKey);
+        JSON_GET("TurretDamageToggleKey", Player::turretDamageToggleKey);
+        JSON_GET("TurretDamageMulti", Player::turretDamageMulti);
+        JSON_GET("TurretLocalOnly", Player::turretLocalOnly);
         JSON_GET("GiveHealthKey", Player::giveHealthKey);
         JSON_GET("GiveDisinKey", Player::giveDisinKey);
         JSON_GET("GiveAmmoKey", Player::giveAmmoKey);

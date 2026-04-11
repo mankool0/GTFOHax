@@ -21,7 +21,7 @@
                 {
                     "description": "Load DLL symbols",
                     "text": "source ${workspaceFolder}/scripts/gdb_load_symbols.py",
-                    "ignoreFailures": false
+                    "ignoreFailures": true
                 },
                 {
                     "description": "Disable stop on exceptions",

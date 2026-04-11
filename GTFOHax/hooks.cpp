@@ -91,6 +91,8 @@ void HookDetach(PVOID ppPointer, std::string functionName)
     }
 }
 
+static float s_pendingBulletDamage = 0.0f;
+
 #define HOOKATTACH(fun) void (*fp ## fun)(void); \
                         HookAttach(reinterpret_cast<PVOID>(app::fun), reinterpret_cast<PVOID>(&Hooks::hk ## fun), reinterpret_cast<PVOID*>(&fp ## fun), #fun)
 #define HOOKDETACH(fun) (HookDetach(reinterpret_cast<PVOID>(app::fun), #fun))
@@ -167,6 +169,9 @@ void Hooks::InitHooks()
     HOOKATTACH(LocalPlayerAgent_Update);
 
     HOOKATTACH(Dam_EnemyDamageBase_ProcessReceivedDamage);
+    HOOKATTACH(ArchetypeDataBlock_GetSentryDamage);
+    HOOKATTACH(Dam_EnemyDamageLimb_ApplyWeakspotAndArmorModifiers);
+    HOOKATTACH(Dam_EnemyDamageLimb_Custom_ApplyWeakspotAndArmorModifiers);
 
     HOOKATTACH(PreLitVolume_Update);
     HOOKATTACH(RenderPipe_CameraUpdate);
@@ -223,6 +228,18 @@ bool Hooks::hkDam_PlayerDamageBase_OnIncomingDamage(app::Dam_PlayerDamageBase* _
 {
     if (!Player::godmodeToggleKey.isToggled())
     {
+        auto agent = app::Dam_PlayerDamageBase_GetBaseAgent(__this, nullptr);
+        bool isLocal = (agent == reinterpret_cast<app::Agent*>(G::localPlayer));
+        if (isLocal && Player::localDamageToggleKey.isToggled())
+        {
+            damage *= Player::localDamageMulti;
+            originalDamage *= Player::localDamageMulti;
+        }
+        else if (!isLocal && Player::teamDamageToggleKey.isToggled())
+        {
+            damage *= Player::teamDamageMulti;
+            originalDamage *= Player::teamDamageMulti;
+        }
         static auto fpOFunc = reinterpret_cast<bool(*)(app::Dam_PlayerDamageBase*, float, float, app::Agent*, MethodInfo*)>(hooks["Dam_PlayerDamageBase_OnIncomingDamage"]);
         return fpOFunc(__this, damage, originalDamage, source, method);
     }
@@ -1034,6 +1051,15 @@ bool Hooks::hkDam_EnemyDamageBase_ProcessReceivedDamage(app::Dam_EnemyDamageBase
     uint32_t gearCategoryId, MethodInfo* method)
 {
     static auto fpOFunc = reinterpret_cast<bool (*)(app::Dam_EnemyDamageBase*, float, app::Agent*, app::Vector3, app::Vector3, app::ES_HitreactType__Enum, bool, int32_t, float, app::DamageNoiseLevel__Enum, uint32_t, MethodInfo*)>(hooks["Dam_EnemyDamageBase_ProcessReceivedDamage"]);
+
+    if (Player::outgoingDamageToggleKey.isToggled() && damageSource == reinterpret_cast<app::Agent*>(G::localPlayer))
+    {
+        if (damage == 0.0f && s_pendingBulletDamage > 0.0f)
+            damage = s_pendingBulletDamage;  // recover from UFloat16 underflow (e.g. Immortal's HealthMax=9999999)
+        damage *= Player::outgoingDamageMulti;
+    }
+    s_pendingBulletDamage = 0.0f;
+
     bool retVal = fpOFunc(__this, damage, damageSource, position, direction, hitreact, tryForceHitreact, limbID, staggerDamageMulti, damageNoiseLevel, gearCategoryId, method);
 
     if ((*app::SNet__TypeInfo)->static_fields->_IsMaster_k__BackingField)
@@ -1044,6 +1070,106 @@ bool Hooks::hkDam_EnemyDamageBase_ProcessReceivedDamage(app::Dam_EnemyDamageBase
     }
 
     return retVal;
+}
+
+float Hooks::hkArchetypeDataBlock_GetSentryDamage(app::ArchetypeDataBlock* __this, app::PlayerAgent* owner, float distance, bool targetIsTagged, MethodInfo* method)
+{
+    static auto fpOFunc = reinterpret_cast<float (*)(app::ArchetypeDataBlock*, app::PlayerAgent*, float, bool, MethodInfo*)>(hooks["ArchetypeDataBlock_GetSentryDamage"]);
+    float result = fpOFunc(__this, owner, distance, targetIsTagged, method);
+
+    if (Player::turretDamageToggleKey.isToggled())
+    {
+        bool isLocal = (reinterpret_cast<app::Agent*>(owner) == reinterpret_cast<app::Agent*>(G::localPlayer));
+        if (!Player::turretLocalOnly || isLocal)
+            result *= Player::turretDamageMulti;
+    }
+    return result;
+}
+
+float Hooks::hkDam_EnemyDamageLimb_ApplyWeakspotAndArmorModifiers(app::Dam_EnemyDamageLimb* __this, float dam, float precisionMulti, MethodInfo* method)
+{
+    static auto fpOFunc = reinterpret_cast<float (*)(app::Dam_EnemyDamageLimb*, float, float, MethodInfo*)>(hooks["Dam_EnemyDamageLimb_ApplyWeakspotAndArmorModifiers"]);
+
+    if (Player::forceWeakspotToggleKey.isToggled() && __this->fields.m_type != app::eLimbDamageType__Enum::Weakspot)
+    {
+        auto limbs = __this->fields.m_base->fields.DamageLimbs;
+        if (limbs)
+        {
+            app::Dam_EnemyDamageLimb* bestLimb = nullptr;
+            float bestMulti = 0.0f;
+            for (il2cpp_array_size_t i = 0; i < limbs->max_length; i++)
+            {
+                auto limb = limbs->vector[i];
+                if (limb && limb->fields.m_type == app::eLimbDamageType__Enum::Weakspot
+                    && limb->fields.m_weakspotDamageMulti > bestMulti)
+                {
+                    bestMulti = limb->fields.m_weakspotDamageMulti;
+                    bestLimb = limb;
+                }
+            }
+            if (bestLimb)
+            {
+                float effective = bestMulti * precisionMulti;
+                if (effective < 1.0f) effective = 1.0f;
+                float result = effective * dam * bestLimb->fields.m_armorDamageMulti;
+                s_pendingBulletDamage = result;
+                return result;
+            }
+            // No weakspot limb found (e.g. Charger, Snatcher) — use 3x, the most common multiplier
+            float effective = 3.0f * precisionMulti;
+            if (effective < 1.0f) effective = 1.0f;
+            float result = effective * dam;
+            s_pendingBulletDamage = result;
+            return result;
+        }
+    }
+
+    float result = fpOFunc(__this, dam, precisionMulti, method);
+    s_pendingBulletDamage = result;
+    return result;
+}
+
+float Hooks::hkDam_EnemyDamageLimb_Custom_ApplyWeakspotAndArmorModifiers(app::Dam_EnemyDamageLimb_Custom* __this, float dam, float precisionMulti, MethodInfo* method)
+{
+    static auto fpOFunc = reinterpret_cast<float (*)(app::Dam_EnemyDamageLimb_Custom*, float, float, MethodInfo*)>(hooks["Dam_EnemyDamageLimb_Custom_ApplyWeakspotAndArmorModifiers"]);
+
+    if (Player::forceWeakspotToggleKey.isToggled() && __this->fields._.m_type != app::eLimbDamageType__Enum::Weakspot)
+    {
+        auto limbs = __this->fields._.m_base->fields.DamageLimbs;
+        if (limbs)
+        {
+            app::Dam_EnemyDamageLimb* bestLimb = nullptr;
+            float bestMulti = 0.0f;
+            for (il2cpp_array_size_t i = 0; i < limbs->max_length; i++)
+            {
+                auto limb = limbs->vector[i];
+                if (limb && limb->fields.m_type == app::eLimbDamageType__Enum::Weakspot
+                    && limb->fields.m_weakspotDamageMulti > bestMulti)
+                {
+                    bestMulti = limb->fields.m_weakspotDamageMulti;
+                    bestLimb = limb;
+                }
+            }
+            if (bestLimb)
+            {
+                float effective = bestMulti * precisionMulti;
+                if (effective < 1.0f) effective = 1.0f;
+                float result = effective * dam * bestLimb->fields.m_armorDamageMulti;
+                s_pendingBulletDamage = result;
+                return result;
+            }
+            // No weakspot limb found — use 3x, the most common multiplier
+            float effective = 3.0f * precisionMulti;
+            if (effective < 1.0f) effective = 1.0f;
+            float result = effective * dam;
+            s_pendingBulletDamage = result;
+            return result;
+        }
+    }
+
+    float result = fpOFunc(__this, dam, precisionMulti, method);
+    s_pendingBulletDamage = result;
+    return result;
 }
 
 void Hooks::hkRenderPipe_CameraUpdate(app::Camera* camera, app::RenderPipe_CameraData* cameraData, MethodInfo* method)

@@ -22,14 +22,16 @@ class DllSymbolLoader(gdb.Command):
 
         if not os.path.exists(dll):
             print(f"ERROR: Cannot locate DLL at {dll}")
-            return
+            return False
 
         try:
             self._process_dll(dll)
+            return True
         except Exception as err:
             print(f"Symbol loading failed: {err}")
             import traceback
             traceback.print_exc()
+            return False
 
     def _process_dll(self, dll_file):
         """Main symbol loading routine."""
@@ -107,6 +109,7 @@ class DllSymbolLoader(gdb.Command):
 
         regions = []
         found_dll = False
+        dll_paths = set()
 
         for line in output.splitlines():
             if "Start Addr" in line or not line.strip():
@@ -126,6 +129,9 @@ class DllSymbolLoader(gdb.Command):
                     'path': ' '.join(parts[5:]) if len(parts) > 5 else ''
                 }
 
+                if region['path']:
+                    dll_paths.add(region['path'])
+
                 if basename.lower() in region['path'].lower():
                     regions.append(region)
                     found_dll = True
@@ -134,6 +140,15 @@ class DllSymbolLoader(gdb.Command):
                     regions.append(region)
             except (ValueError, IndexError):
                 continue
+
+        if not regions:
+            # Print unique mapped paths containing common DLL-like names to aid diagnosis
+            candidates = sorted(p for p in dll_paths if '.dll' in p.lower() or '.so' in p.lower())
+            print(f"DEBUG: Searching for '{basename}' — not found. Mapped DLL/SO paths ({len(candidates)}):")
+            for p in candidates[:40]:
+                print(f"  {p}")
+            if len(candidates) > 40:
+                print(f"  ... and {len(candidates) - 40} more")
 
         return regions
 
@@ -161,9 +176,10 @@ def _on_debugger_stop(evt):
     try:
         proc_info = gdb.execute("info proc", to_string=True)
         if "process" in proc_info.lower():
-            _loaded = True
             print("Auto-loading symbols...")
-            symbol_loader.invoke("", False)
+            success = symbol_loader.invoke("", False)
+            if success:
+                _loaded = True
     except:
         pass
 

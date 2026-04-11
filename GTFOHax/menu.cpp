@@ -155,6 +155,59 @@ void RenderTabPlayer()
         ImGui::Unindent();
     }
 
+    ImGui::SeparatorText(I18N::T("player_damage_multipliers"));
+    ImGui::Checkbox(I18N::T("player_damage_enemy"), &Player::outgoingDamageToggleKey.toggledOn);
+    ImGui::SameLine();
+    ImGui::PushID("OutgoingDamageHotkey");
+    ImGui::Hotkey("", Player::outgoingDamageToggleKey);
+    ImGui::PopID();
+    if (Player::outgoingDamageToggleKey.isToggled())
+    {
+        ImGui::Indent();
+        ImGui::SliderFloat("##EnemyDmgMulti", &Player::outgoingDamageMulti, 0.1f, 100.0f);
+        ImGui::Unindent();
+    }
+    ImGui::Checkbox(I18N::T("player_damage_received_self"), &Player::localDamageToggleKey.toggledOn);
+    ImGui::SameLine();
+    ImGui::PushID("LocalDamageHotkey");
+    ImGui::Hotkey("", Player::localDamageToggleKey);
+    ImGui::PopID();
+    if (Player::localDamageToggleKey.isToggled())
+    {
+        ImGui::Indent();
+        ImGui::SliderFloat("##SelfDmgMulti", &Player::localDamageMulti, 0.0f, 100.0f);
+        ImGui::Unindent();
+    }
+    ImGui::Checkbox(I18N::T("player_damage_received_team"), &Player::teamDamageToggleKey.toggledOn);
+    ImGui::SameLine();
+    ImGui::PushID("TeamDamageHotkey");
+    ImGui::Hotkey("", Player::teamDamageToggleKey);
+    ImGui::PopID();
+    if (Player::teamDamageToggleKey.isToggled())
+    {
+        ImGui::Indent();
+        ImGui::SliderFloat("##TeamDmgMulti", &Player::teamDamageMulti, 0.0f, 100.0f);
+        ImGui::Unindent();
+    }
+    ImGui::Checkbox(I18N::T("player_force_weakspot"), &Player::forceWeakspotToggleKey.toggledOn);
+    ImGui::SameLine();
+    ImGui::PushID("ForceWeakspotHotkey");
+    ImGui::Hotkey("", Player::forceWeakspotToggleKey);
+    ImGui::PopID();
+    ImGui::Checkbox(I18N::T("player_turret_damage"), &Player::turretDamageToggleKey.toggledOn);
+    ImGui::SameLine();
+    ImGui::PushID("TurretDamageHotkey");
+    ImGui::Hotkey("", Player::turretDamageToggleKey);
+    ImGui::PopID();
+    if (Player::turretDamageToggleKey.isToggled())
+    {
+        ImGui::Indent();
+        ImGui::SliderFloat("##TurretDmgMulti", &Player::turretDamageMulti, 0.1f, 100.0f);
+        ImGui::Checkbox(I18N::T("player_turret_local_only"), &Player::turretLocalOnly);
+        ImGui::Unindent();
+    }
+
+    ImGui::Separator();
     if (ImGui::Button("Give Health"))
     if (ImGui::Button(I18N::T("player_give_health")))
         Player::GiveLocalHealth();
