@@ -1003,6 +1003,10 @@ void Hooks::hkLocalPlayerAgent_Update(app::LocalPlayerAgent* __this, MethodInfo*
         }
 
         // Update light properties every frame from sliders
+        // Use Unity's op_Implicit check to detect destroyed objects
+        if (fullBrightLight != nullptr && !app::Object_1_op_Implicit(reinterpret_cast<app::Object_1*>(fullBrightLight), NULL))
+            fullBrightLight = nullptr;
+
         if (fullBrightLight != nullptr)
         {
             app::Light_set_range(fullBrightLight, Player::fullBrightRange, NULL);
@@ -1020,7 +1024,8 @@ void Hooks::hkLocalPlayerAgent_Update(app::LocalPlayerAgent* __this, MethodInfo*
     else if (fullBrightLight != nullptr)
     {
         // Destroy the light component when toggle is off
-        app::Object_1_Destroy_1(reinterpret_cast<app::Object_1*>(fullBrightLight), NULL);
+        if (app::Object_1_op_Implicit(reinterpret_cast<app::Object_1*>(fullBrightLight), NULL))
+            app::Object_1_Destroy_1(reinterpret_cast<app::Object_1*>(fullBrightLight), NULL);
         fullBrightLight = nullptr;
     }
 
