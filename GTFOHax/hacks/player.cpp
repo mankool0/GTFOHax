@@ -31,6 +31,10 @@ namespace Player
     KeyBind giveDisinKey;
     KeyBind giveAmmoKey;
 
+    KeyBindToggle autoSelfReviveToggleKey;
+    KeyBind selfReviveKey;
+    KeyBindToggle fullHpReviveToggleKey;
+
     // Full Bright Light Settings
     float fullBrightRange = 1000.0f;
     float fullBrightIntensity = 0.6f;
@@ -55,12 +59,17 @@ namespace Player
         teamDamageToggleKey.handleToggle();
         turretDamageToggleKey.handleToggle();
 
+        autoSelfReviveToggleKey.handleToggle();
+        fullHpReviveToggleKey.handleToggle();
+
         if (giveHealthKey.isPressed())
             GiveLocalHealth();
         if (giveDisinKey.isPressed())
             GiveLocalDisinfection();
         if (giveAmmoKey.isPressed())
             GiveLocalAmmo();
+        if (selfReviveKey.isPressed())
+            SelfRevive();
     }
 
     void _GiveLocalHealth()
@@ -106,5 +115,18 @@ namespace Player
     void GiveLocalAmmo()
     {
         G::callbacks.push([] { _GiveLocalAmmo(); });
+    }
+
+    void _SelfRevive()
+    {
+        auto localPlayer = app::PlayerManager_2_GetLocalPlayerAgent(nullptr);
+        if (!localPlayer) return;
+        app::Vector3 pos = localPlayer->fields._.m_position;
+        app::AgentReplicatedActions_PlayerReviveAction(localPlayer, localPlayer, pos, nullptr);
+    }
+
+    void SelfRevive()
+    {
+        G::callbacks.push([] { _SelfRevive(); });
     }
 }

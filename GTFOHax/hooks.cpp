@@ -176,6 +176,9 @@ void Hooks::InitHooks()
     HOOKATTACH(PreLitVolume_Update);
     HOOKATTACH(RenderPipe_CameraUpdate);
 
+    HOOKATTACH(PLOC_Downed_Enter);
+    HOOKATTACH(Dam_PlayerDamageLocal_OnRevive);
+
     if (hookFailed)
         il2cppi_log_write("Failed Initializing Hooks");
     else
@@ -245,6 +248,30 @@ bool Hooks::hkDam_PlayerDamageBase_OnIncomingDamage(app::Dam_PlayerDamageBase* _
     }
 
     return false;
+}
+
+void Hooks::hkPLOC_Downed_Enter(app::PLOC_Downed* __this, MethodInfo* method)
+{
+    static auto fpOFunc = reinterpret_cast<void (*)(app::PLOC_Downed*, MethodInfo*)>(hooks["PLOC_Downed_Enter"]);
+    fpOFunc(__this, method);
+
+    if (!Player::autoSelfReviveToggleKey.isToggled()) return;
+
+    auto owner = __this->fields._.m_owner;
+    auto localPlayer = app::PlayerManager_2_GetLocalPlayerAgent(nullptr);
+    if (!owner || owner != localPlayer) return;
+
+    app::Vector3 pos = localPlayer->fields._.m_position;
+    app::AgentReplicatedActions_PlayerReviveAction(localPlayer, localPlayer, pos, nullptr);
+}
+
+void Hooks::hkDam_PlayerDamageLocal_OnRevive(app::Dam_PlayerDamageLocal* __this, app::pSetHealthData data, MethodInfo* method)
+{
+    if (Player::fullHpReviveToggleKey.isToggled())
+        data.health.internalValue = 0xFFFF;
+
+    static auto fpOFunc = reinterpret_cast<void (*)(app::Dam_PlayerDamageLocal*, app::pSetHealthData, MethodInfo*)>(hooks["Dam_PlayerDamageLocal_OnRevive"]);
+    fpOFunc(__this, data, method);
 }
 
 void Hooks::hkDam_PlayerDamageBase_ModifyInfection(app::Dam_PlayerDamageBase* __this, app::pInfection data, bool sync, bool updatePageMap, MethodInfo* method)

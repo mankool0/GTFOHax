@@ -53,5 +53,8 @@ namespace Hooks
 
     void hkPreLitVolume_Update(app::PreLitVolume* __this, MethodInfo* method);
     void hkRenderPipe_CameraUpdate(app::Camera* camera, app::RenderPipe_CameraData* cameraData, MethodInfo* method);
+
+    void hkPLOC_Downed_Enter(app::PLOC_Downed* __this, MethodInfo* method);
+    void hkDam_PlayerDamageLocal_OnRevive(app::Dam_PlayerDamageLocal* __this, app::pSetHealthData data, MethodInfo* method);
 }
 

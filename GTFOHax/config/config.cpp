@@ -271,6 +271,9 @@ void Config::Save()
             {"GiveHealthKey", Player::giveHealthKey},
             {"GiveDisinKey", Player::giveDisinKey},
             {"GiveAmmoKey", Player::giveAmmoKey},
+            {"AutoSelfReviveToggleKey", Player::autoSelfReviveToggleKey},
+            {"SelfReviveKey", Player::selfReviveKey},
+            {"FullHpReviveToggleKey", Player::fullHpReviveToggleKey},
 
 
             {"WorldESPToggleKey", ESP::worldESPToggleKey},
@@ -334,6 +337,9 @@ void Config::Load()
         JSON_GET("GiveHealthKey", Player::giveHealthKey);
         JSON_GET("GiveDisinKey", Player::giveDisinKey);
         JSON_GET("GiveAmmoKey", Player::giveAmmoKey);
+        JSON_GET("AutoSelfReviveToggleKey", Player::autoSelfReviveToggleKey);
+        JSON_GET("SelfReviveKey", Player::selfReviveKey);
+        JSON_GET("FullHpReviveToggleKey", Player::fullHpReviveToggleKey);
 
 
         JSON_GET("WorldESPToggleKey", ESP::worldESPToggleKey);

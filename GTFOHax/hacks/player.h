@@ -31,6 +31,10 @@ namespace Player
     extern KeyBind giveDisinKey;
     extern KeyBind giveAmmoKey;
 
+    extern KeyBindToggle autoSelfReviveToggleKey;
+    extern KeyBind selfReviveKey;
+    extern KeyBindToggle fullHpReviveToggleKey;
+
     // Full Bright Light Settings
     extern float fullBrightRange;
     extern float fullBrightIntensity;
@@ -42,4 +46,5 @@ namespace Player
     void GiveLocalHealth();
     void GiveLocalDisinfection();
     void GiveLocalAmmo();
+    void SelfRevive();
 }

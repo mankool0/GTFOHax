@@ -232,6 +232,27 @@ void RenderTabPlayer()
     ImGui::PushID("GiveAmmoHotkey");
     ImGui::Hotkey("", Player::giveAmmoKey);
     ImGui::PopID();
+
+    ImGui::Separator();
+    ImGui::PushID("AutoSelfRevive");
+    ImGui::Checkbox(I18N::T("player_auto_self_revive"), &Player::autoSelfReviveToggleKey.toggledOn);
+    ImGui::SameLine();
+    ImGui::Hotkey("", Player::autoSelfReviveToggleKey);
+    ImGui::PopID();
+
+    if (ImGui::Button(I18N::T("player_self_revive")))
+        Player::SelfRevive();
+    ImGui::SameLine();
+    ImGui::SetCursorPosX(160);
+    ImGui::PushID("SelfReviveHotkey");
+    ImGui::Hotkey("", Player::selfReviveKey);
+    ImGui::PopID();
+
+    ImGui::PushID("FullHpRevive");
+    ImGui::Checkbox(I18N::T("player_full_hp_revive"), &Player::fullHpReviveToggleKey.toggledOn);
+    ImGui::SameLine();
+    ImGui::Hotkey("", Player::fullHpReviveToggleKey);
+    ImGui::PopID();
 }
 
 void RenderAgentESPSection(ESP::AgentESPSection& section)
