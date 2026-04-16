@@ -12,5 +12,5 @@ namespace Math
     app::Vector3 Vector3Sub(app::Vector3 lhs, app::Vector3 rhs);
     bool Vector3Eq(app::Vector3 lhs, app::Vector3 rhs);
     app::Matrix4x4 MatrixMult(app::Matrix4x4 lhs, app::Matrix4x4 rhs);
-    bool WorldToScreen(app::Vector3& worldPos, ImVec2& screenPos);
+    bool WorldToScreen(const app::Vector3& worldPos, ImVec2& screenPos);
 }

@@ -167,6 +167,7 @@ void Hooks::InitHooks()
     HOOKATTACH(Cursor_set_visible);
 
     HOOKATTACH(LocalPlayerAgent_Update);
+    HOOKATTACH(LocalPlayerAgent_LateUpdate);
 
     HOOKATTACH(Dam_EnemyDamageBase_ProcessReceivedDamage);
     HOOKATTACH(ArchetypeDataBlock_GetSentryDamage);
@@ -424,14 +425,10 @@ bool Hooks::hkWeapon_CastWeaponRay_1(app::Transform* alignTransform, app::Weapon
                         bool isValid = false;
                         if (localTargetEnemy != nullptr)
                         {
-                            for (const auto& enemyInfo : Enemy::enemiesAimbot)
-                            {
-                                if (enemyInfo->enemyAgent == localTargetEnemy)
-                                {
-                                    isValid = true;
-                                    break;
-                                }
-                            }
+                            auto aimSnap = Enemy::enemiesAimbot.load();
+                            if (aimSnap)
+                                for (const auto& enemyInfo : *aimSnap)
+                                    if (enemyInfo->enemyAgent == localTargetEnemy) { isValid = true; break; }
                         }
                         
                         if (isValid)
@@ -496,14 +493,10 @@ bool Hooks::hkWeapon_CastWeaponRay_1(app::Transform* alignTransform, app::Weapon
                         bool isValid = false;
                         if (localTargetEnemy != nullptr)
                         {
-                            for (const auto& enemyInfo : Enemy::enemiesAimbot)
-                            {
-                                if (enemyInfo->enemyAgent == localTargetEnemy)
-                                {
-                                    isValid = true;
-                                    break;
-                                }
-                            }
+                            auto aimSnap = Enemy::enemiesAimbot.load();
+                            if (aimSnap)
+                                for (const auto& enemyInfo : *aimSnap)
+                                    if (enemyInfo->enemyAgent == localTargetEnemy) { isValid = true; break; }
                         }
                         
                         if (isValid)
@@ -610,21 +603,26 @@ bool Hooks::hkWeapon_CastWeaponRay_1(app::Transform* alignTransform, app::Weapon
                 
                 if (localTargetEnemy != nullptr)
                 {
-                    for (const auto& enemyInfo : Enemy::enemiesAimbot)
+                    auto aimSnap = Enemy::enemiesAimbot.load();
+                    for (const auto& enemyInfo : (aimSnap ? *aimSnap : Enemy::EnemyVec{}))
                     {
-                        if (enemyInfo->enemyAgent == localTargetEnemy && !enemyInfo->skeletonBones.empty())
+                        if (enemyInfo->enemyAgent == localTargetEnemy)
                         {
                             // Get real-time skeleton positions
                             std::map<app::HumanBodyBones__Enum, Enemy::Bone> currentBones;
                             for (const auto& boneType : Enemy::WantedBones)
                             {
-                                auto boneTransform = app::Animator_GetBoneTransform(
-                                    localTargetEnemy->fields.Anim, boneType, NULL);
-                                if (boneTransform != nullptr)
+                                const Enemy::Bone* b = enemyInfo->getBone(boneType);
+                                if (b)
                                 {
-                                    Enemy::Bone bone;
-                                    bone.position = app::Transform_get_position(boneTransform, NULL);
-                                    currentBones[boneType] = bone;
+                                    app::Transform* boneTransform = app::Animator_GetBoneTransform(
+                                        localTargetEnemy->fields.Anim, boneType, NULL);
+                                    if (boneTransform != nullptr)
+                                    {
+                                        Enemy::Bone bone = *b;
+                                        app::Transform_get_position_Injected(boneTransform, &bone.position, NULL);
+                                        currentBones[boneType] = bone;
+                                    }
                                 }
                             }
                             if (!currentBones.empty())
@@ -935,16 +933,21 @@ void Hooks::hkLocalPlayerAgent_Update(app::LocalPlayerAgent* __this, MethodInfo*
     static auto fpOFunc = reinterpret_cast<void (*)(app::LocalPlayerAgent*, MethodInfo*)>(hooks["LocalPlayerAgent_Update"]);
     fpOFunc(__this, method);
 
-    Enemy::_RefreshEnemyAgents();
+    G::localPlayer = reinterpret_cast<app::PlayerAgent*>(__this);
+
     while (!G::callbacks.empty())
     {
         G::callbacks.front()();
         G::callbacks.pop();
     }
 
-    G::w2CamMatrix = app::Camera_get_worldToCameraMatrix(G::mainCamera, NULL);
-    G::projMatrix = app::Camera_get_projectionMatrix(G::mainCamera, NULL);
-    G::viewMatrix = Math::MatrixMult(G::projMatrix, G::w2CamMatrix);
+    if (G::mainCamera != NULL)
+    {
+        std::lock_guard<std::mutex> lock(G::matrixMtx);
+        G::w2CamMatrix = app::Camera_get_worldToCameraMatrix(G::mainCamera, NULL);
+        G::projMatrix = app::Camera_get_projectionMatrix(G::mainCamera, NULL);
+        G::viewMatrix = Math::MatrixMult(G::projMatrix, G::w2CamMatrix);
+    }
 
     // Handle custom fullbright light
     static app::Light* fullBrightLight = nullptr;
@@ -1241,6 +1244,14 @@ LRESULT __stdcall WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         return TRUE;
     
     return CallWindowProc(G::oWndProc, hWnd, uMsg, wParam, lParam);
+}
+
+void Hooks::hkLocalPlayerAgent_LateUpdate(app::LocalPlayerAgent* __this, MethodInfo* method)
+{
+    static auto fpOFunc = reinterpret_cast<void (*)(app::LocalPlayerAgent*, MethodInfo*)>(hooks["LocalPlayerAgent_LateUpdate"]);
+    fpOFunc(__this, method);
+
+    Enemy::_RefreshEnemyAgents();
 }
 
 HRESULT __stdcall Hooks::hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Flags)

@@ -2,6 +2,7 @@
 #include "globals.h"
 #include <vector>
 #include <map>
+#include <atomic>
 
 namespace Enemy
 {
@@ -88,39 +89,39 @@ namespace Enemy
     {
         bool visible;
         app::EnemyAgent* enemyAgent;
-        std::map<app::HumanBodyBones__Enum, Bone> skeletonBones;
-        std::vector<Bone> damageableBones;
+        
+        Bone bones[64];
+        bool hasBone[64];
+        
+        ImVec2 screenPositions[64];
+        bool screenPositionsValid[64];
+
+        Bone damageableBones[32];
+        int  damageableBoneCount;
         Bone fallbackBone;
         std::string enemyObjectName;
         float distance;
         bool useFallback;
 
-        EnemyInfo(bool visible, std::map<app::HumanBodyBones__Enum, Bone> skeletonBones, std::vector<Bone> damageableBones, app::EnemyAgent* enemyAgent, std::string enemyObjectName, float distance)
+        // Efficient constructor
+        EnemyInfo() : visible(false), enemyAgent(nullptr), distance(0), useFallback(false), damageableBoneCount(0)
         {
-            this->visible = visible;
-            this->skeletonBones = skeletonBones;
-            this->damageableBones = damageableBones;
-            this->enemyAgent = enemyAgent;
-            this->enemyObjectName = enemyObjectName;
-            this->distance = distance;
-            this->useFallback = false;
+            memset(hasBone, 0, sizeof(hasBone));
+            memset(screenPositionsValid, 0, sizeof(screenPositionsValid));
         }
-        
-        EnemyInfo(bool visible, std::map<app::HumanBodyBones__Enum, Bone> skeletonBones, std::vector<Bone> damageableBones, app::EnemyAgent* enemyAgent, std::string enemyObjectName, float distance, Bone fallbackBone)
+
+        inline const Bone* getBone(app::HumanBodyBones__Enum boneType) const
         {
-            this->visible = visible;
-            this->skeletonBones = skeletonBones;
-            this->damageableBones = damageableBones;
-            this->enemyAgent = enemyAgent;
-            this->enemyObjectName = enemyObjectName;
-            this->distance = distance;
-            this->fallbackBone = fallbackBone;
-            this->useFallback = true;
+            int idx = static_cast<int>(boneType);
+            if (idx >= 0 && idx < 64 && hasBone[idx])
+                return &bones[idx];
+            return nullptr;
         }
     };
 
-    extern std::vector<std::shared_ptr<EnemyInfo>> enemies;
-    extern std::vector<std::shared_ptr<EnemyInfo>> enemiesAimbot;
+    using EnemyVec = std::vector<std::shared_ptr<EnemyInfo>>;
+    extern std::atomic<std::shared_ptr<EnemyVec>> enemies;
+    extern std::atomic<std::shared_ptr<EnemyVec>> enemiesAimbot;
     extern std::map<std::string, int> enemyIDs;
     extern std::vector<std::string> enemyNames;
     

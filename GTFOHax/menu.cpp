@@ -886,46 +886,62 @@ void RenderWorldESP()
     RenderBulkheads();
 }
 
-void DrawBone(ImU32 color, app::Vector3 startBone, app::Vector3 endBone, float thickness)
+void DrawBone(ImU32 color, Enemy::EnemyInfo* info, app::HumanBodyBones__Enum startBone, app::HumanBodyBones__Enum endBone, float thickness)
 {
-    if (!G::mainCamera)
-        return;
+    int startIdx = static_cast<int>(startBone);
+    int endIdx = static_cast<int>(endBone);
+    
+    if (startIdx < 0 || startIdx >= 64 || endIdx < 0 || endIdx >= 64) return;
+    if (!info->hasBone[startIdx] || !info->hasBone[endIdx]) return;
+
     ImVec2 drawPosStart, drawPosEnd;
-    if (!Math::WorldToScreen(startBone, drawPosStart) || !Math::WorldToScreen(endBone, drawPosEnd))
-        return;
+    
+    if (info->screenPositionsValid[startIdx])
+        drawPosStart = info->screenPositions[startIdx];
+    else {
+        if (!Math::WorldToScreen(info->bones[startIdx].position, drawPosStart)) return;
+        info->screenPositions[startIdx] = drawPosStart;
+        info->screenPositionsValid[startIdx] = true;
+    }
+
+    if (info->screenPositionsValid[endIdx])
+        drawPosEnd = info->screenPositions[endIdx];
+    else {
+        if (!Math::WorldToScreen(info->bones[endIdx].position, drawPosEnd)) return;
+        info->screenPositions[endIdx] = drawPosEnd;
+        info->screenPositionsValid[endIdx] = true;
+    }
+
     ImGui::GetBackgroundDrawList()->AddLine(drawPosStart, drawPosEnd, color, thickness);
 }
 
 void DrawSkeleton(Enemy::EnemyInfo* fullInfo)
 {
-    for (std::vector<std::vector<app::HumanBodyBones__Enum>>::iterator itOuter = Enemy::skeletonBones.begin(); itOuter != Enemy::skeletonBones.end(); ++itOuter)
+    for (const auto& boneGroup : Enemy::skeletonBones)
     { 
-        Enemy::Bone prevBone;
-        for (std::vector<app::HumanBodyBones__Enum>::iterator it = (*itOuter).begin(); it != (*itOuter).end(); ++it)
+        app::HumanBodyBones__Enum prevBoneType = (app::HumanBodyBones__Enum)-1;
+        for (const auto& curBoneType : boneGroup)
         {
-            Enemy::Bone curBone = fullInfo->skeletonBones[*it]; // TODO: Fix map issue
-            if (prevBone.position.x == 0.0f && prevBone.position.y == 0.0f && prevBone.position.z == 0.0f)
+            if (prevBoneType == (app::HumanBodyBones__Enum)-1)
             {
-                prevBone = curBone;
+                prevBoneType = curBoneType;
                 continue;
             }
-            if (curBone.position.x == 0.0f && curBone.position.y == 0.0f && curBone.position.z == 0.0f)
-                continue;
             
-            if (prevBone.visible || curBone.visible)
+            const Enemy::Bone* prevBone = fullInfo->getBone(prevBoneType);
+            const Enemy::Bone* curBone = fullInfo->getBone(curBoneType);
+            
+            if (!prevBone || !curBone) continue;
+
+            bool isVisible = prevBone->visible || curBone->visible;
+            auto& espSec = isVisible ? ESP::enemyESP.visibleSec : ESP::enemyESP.nonVisibleSec;
+
+            if (espSec.showSkeleton && fullInfo->distance <= espSec.skeletonRenderDistance)
             {
-                if (!ESP::enemyESP.visibleSec.showSkeleton || fullInfo->distance > ESP::enemyESP.visibleSec.skeletonRenderDistance)
-                    continue;
-                DrawBone(ImGui::GetColorU32(ESP::enemyESP.visibleSec.skeletonColor), prevBone.position, curBone.position, ESP::enemyESP.visibleSec.skeletonThickness);
-            }
-            else
-            {
-                if (!ESP::enemyESP.nonVisibleSec.showSkeleton || fullInfo->distance > ESP::enemyESP.nonVisibleSec.skeletonRenderDistance)
-                    continue;
-                DrawBone(ImGui::GetColorU32(ESP::enemyESP.nonVisibleSec.skeletonColor), prevBone.position, curBone.position, ESP::enemyESP.nonVisibleSec.skeletonThickness);
+                DrawBone(ImGui::GetColorU32(espSec.skeletonColor), fullInfo, prevBoneType, curBoneType, espSec.skeletonThickness);
             }
 
-            prevBone = curBone;
+            prevBoneType = curBoneType;
         }
     }
 }
@@ -940,55 +956,47 @@ void RenderEnemyAgent(Enemy::EnemyInfo* enemyInfo, ESP::AgentESPSection* espSett
                           Aimbot::settings.toggleKey.isToggled() &&
                           Aimbot::IsLockedTarget(enemyInfo->enemyAgent);
 
-    Enemy::Bone headBone = enemyInfo->useFallback ? enemyInfo->fallbackBone : enemyInfo->skeletonBones[app::HumanBodyBones__Enum::Head]; // TODO: Fix map issue
+    const Enemy::Bone* headBone = enemyInfo->useFallback ? &enemyInfo->fallbackBone : enemyInfo->getBone(app::HumanBodyBones__Enum::Head);
+    if (!headBone) return;
+
     ImVec2 w2sHead;
-    if (!Math::WorldToScreen(headBone.position, w2sHead))
+    if (!Math::WorldToScreen(headBone->position, w2sHead))
         return;
 
-    ImVec2 w2sLeftFoot, w2sRightFoot;
-    if (!enemyInfo->useFallback)
-    {
-        Enemy::Bone leftFootBone = enemyInfo->skeletonBones[app::HumanBodyBones__Enum::LeftFoot]; // TODO: Fix map issue
-        Enemy::Bone rightFootBone = enemyInfo->skeletonBones[app::HumanBodyBones__Enum::RightFoot]; // TODO: Fix map issue
-        if (!Math::WorldToScreen(leftFootBone.position, w2sLeftFoot) ||
-            !Math::WorldToScreen(rightFootBone.position, w2sRightFoot))
-            return;
-    }
-    else
-    {
-        w2sLeftFoot = w2sRightFoot = w2sHead;
-    }
+    ImVec2 min = w2sHead, max = w2sHead;
+    bool valid = true;
     
-    ImVec2 min, max;
     if (!enemyInfo->useFallback)
     {
         min.y = min.x = (std::numeric_limits<float>::max)();
         max.y = max.x = -(std::numeric_limits<float>::max)();
-    }
-    else
-    {
-        min.x = max.x = w2sHead.x;
-        min.y = max.y = w2sHead.y;
-    }
-    bool valid = true;
-    for (auto const& [key, val] : enemyInfo->skeletonBones)
-    {
-        ImVec2 curPos;
-        auto bonePos = val.position;
-        if (!Math::WorldToScreen((bonePos), curPos))
+
+        int validBones = 0;
+        for (int i = 0; i < 64; i++)
         {
-            valid = false;
-            continue;
+            if (!enemyInfo->hasBone[i]) continue;
+            
+            ImVec2 curPos;
+            if (enemyInfo->screenPositionsValid[i])
+                curPos = enemyInfo->screenPositions[i];
+            else {
+                if (!Math::WorldToScreen(enemyInfo->bones[i].position, curPos)) {
+                    continue; // Skip this bone for bounding box, but keep the enemy
+                }
+                enemyInfo->screenPositions[i] = curPos;
+                enemyInfo->screenPositionsValid[i] = true;
+            }
+            min.x = (std::min)(min.x, curPos.x);
+            min.y = (std::min)(min.y, curPos.y);
+            max.x = (std::max)(max.x, curPos.x);
+            max.y = (std::max)(max.y, curPos.y);
+            validBones++;
         }
-        min.x = (std::min)(min.x, curPos.x);
-        min.y = (std::min)(min.y, curPos.y);
-        max.x = (std::max)(max.x, curPos.x);
-        max.y = (std::max)(max.y, curPos.y);
+        if (validBones == 0) valid = false;
     }
 
     if (espSettings->showBoxes && !enemyInfo->useFallback && valid)
     {    
-        // Use highlight color if this is the locked target
         ImU32 boxColor = isLockedTarget ? ImGui::GetColorU32(Aimbot::settings.targetHighlightColor) 
                                         : ImGui::GetColorU32(espSettings->boxesColor);
         ImU32 outlineColor = ImGui::GetColorU32(espSettings->boxesOutlineColor);
@@ -997,6 +1005,7 @@ void RenderEnemyAgent(Enemy::EnemyInfo* enemyInfo, ESP::AgentESPSection* espSett
         ImGui::GetBackgroundDrawList()->AddRect(ImVec2{ min.x + 1.0f, min.y + 1.0f }, ImVec2{ max.x - 1.0f, max.y - 1.0f }, outlineColor);
         ImGui::GetBackgroundDrawList()->AddRect(min, max, boxColor);
     }
+
 
 
     auto enemyDamage = reinterpret_cast<app::Dam_SyncedDamageBase*>(enemyInfo->enemyAgent->fields.Damage);
@@ -1110,23 +1119,25 @@ void RenderEnemyAgent(Enemy::EnemyInfo* enemyInfo, ESP::AgentESPSection* espSett
 
 void RenderEnemyESP()
 {
-    G::enemyVecMtx.lock();
-    std::vector<std::shared_ptr<Enemy::EnemyInfo>> enemies = Enemy::enemies;
-    G::enemyVecMtx.unlock();
-    std::sort(enemies.begin(), enemies.end(), [](const std::shared_ptr<Enemy::EnemyInfo> lhs, const std::shared_ptr<Enemy::EnemyInfo> rhs) {
+    auto enemiesSnap = Enemy::enemies.load();
+    if (!enemiesSnap || enemiesSnap->empty()) return;
+
+    // Use a temporary vector of pointers for sorting to avoid copying shared_ptrs
+    static std::vector<Enemy::EnemyInfo*> sortedEnemies;
+    sortedEnemies.clear();
+    sortedEnemies.reserve(enemiesSnap->size());
+
+    for (auto& enemy : *enemiesSnap)
+        sortedEnemies.push_back(enemy.get());
+
+    // Sorting by distance ensures enemies further away are drawn first (if we cared about transparency)
+    std::sort(sortedEnemies.begin(), sortedEnemies.end(), [](Enemy::EnemyInfo* lhs, Enemy::EnemyInfo* rhs) {
         return lhs->distance > rhs->distance;
-        });
-    for (auto it = enemies.begin(); it != enemies.end(); ++it)
+    });
+
+    for (auto enemyInfo : sortedEnemies)
     {
-        Enemy::EnemyInfo* enemyInfo = (*it).get();
-
-        Enemy::Bone defBone;
-        if (enemyInfo->useFallback)
-            defBone = enemyInfo->fallbackBone;
-        else
-            defBone = enemyInfo->skeletonBones[app::HumanBodyBones__Enum::Head]; // TODO: Fix map issue
-
-        if (!G::mainCamera || !(enemyInfo->enemyAgent->fields.m_alive) || (defBone.position.x == 0.0f && defBone.position.y == 0.0f && defBone.position.z == 0.0f))
+        if (!G::mainCamera || !(enemyInfo->enemyAgent->fields.m_alive))
             continue;
 
         if (enemyInfo->visible && ESP::enemyESP.visibleSec.show)
@@ -1165,6 +1176,11 @@ void RenderESP()
     {
         G::mainCamera = app::Camera_get_main(NULL);
         return;
+    }
+
+    {
+        std::lock_guard<std::mutex> lock(G::matrixMtx);
+        G::renderViewMatrix = G::viewMatrix;
     }
 
     G::screenHeight = app::Screen_get_height(NULL);

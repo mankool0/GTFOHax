@@ -39,9 +39,9 @@ namespace Math
         return matrix4x4;
     }
 
-    bool WorldToScreen(app::Vector3& worldPos, ImVec2& screenPos)
+    bool WorldToScreen(const app::Vector3& worldPos, ImVec2& screenPos)
     {
-        auto matrix = G::viewMatrix;
+        auto matrix = G::renderViewMatrix;
         app::Vector3 screenPosTemp;
 
         screenPosTemp.z = (matrix.m20 * worldPos.x + matrix.m21 * worldPos.y + matrix.m22 * worldPos.z) + matrix.m23;
@@ -60,7 +60,7 @@ namespace Math
 
 
         screenPos.x = screenPosTemp.x;
-        screenPos.y = G::screenHeight - screenPosTemp.y;
+        screenPos.y = (float)G::screenHeight - screenPosTemp.y;
 
         //if (screenPos.x < 0 || screenPos.y < 0 || screenPos.x > G::screenWidth || screenPos.y > G::screenHeight)
         //    return false;

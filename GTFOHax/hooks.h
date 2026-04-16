@@ -42,6 +42,7 @@ namespace Hooks
     void hkCursor_set_visible(bool value, MethodInfo* method);
 
     void hkLocalPlayerAgent_Update(app::LocalPlayerAgent* __this, MethodInfo* method);
+    void hkLocalPlayerAgent_LateUpdate(app::LocalPlayerAgent* __this, MethodInfo* method);
     bool hkDam_EnemyDamageBase_ProcessReceivedDamage(app::Dam_EnemyDamageBase* __this, float damage, app::Agent* damageSource,
         app::Vector3 position, app::Vector3 direction, app::ES_HitreactType__Enum hitreact, bool tryForceHitreact, int32_t limbID,
         float staggerDamageMulti, app::DamageNoiseLevel__Enum damageNoiseLevel,

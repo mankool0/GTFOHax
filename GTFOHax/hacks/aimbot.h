@@ -11,16 +11,23 @@ namespace Aimbot
     // Hit ghost effect - shows a fading skeleton at hit location
     struct HitGhost
     {
-        std::map<app::HumanBodyBones__Enum, app::Vector3> skeletonPositions;  // Snapshot of skeleton at hit time
+        app::Vector3 skeletonPositions[64];
+        bool hasBone[64];
         std::chrono::steady_clock::time_point hitTime;  // When the hit occurred
         float duration;  // How long to display (seconds)
         
         HitGhost(const std::map<app::HumanBodyBones__Enum, Enemy::Bone>& bones, float duration = 0.3f)
             : hitTime(std::chrono::steady_clock::now()), duration(duration)
         {
+            memset(hasBone, 0, sizeof(hasBone));
             for (const auto& [boneType, bone] : bones)
             {
-                skeletonPositions[boneType] = bone.position;
+                int idx = static_cast<int>(boneType);
+                if (idx >= 0 && idx < 64)
+                {
+                    skeletonPositions[idx] = bone.position;
+                    hasBone[idx] = true;
+                }
             }
         }
         

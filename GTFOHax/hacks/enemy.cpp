@@ -1,7 +1,10 @@
 #include "enemy.h"
 #include <cmath>
 #include <iostream>
-#include <set>
+#include <unordered_set>
+#include <unordered_map>
+#include <chrono>
+#include <format>
 #include <helpers.h>
 #include "aimbot.h"
 #include "esp.h"
@@ -9,34 +12,122 @@
 
 namespace Enemy
 {
-    std::vector<std::shared_ptr<EnemyInfo>> enemies;
-    std::vector<std::shared_ptr<EnemyInfo>> enemiesAimbot;
+    std::atomic<std::shared_ptr<EnemyVec>> enemies;
+    std::atomic<std::shared_ptr<EnemyVec>> enemiesAimbot;
     std::map<std::string, int> enemyIDs;
     std::vector<std::string> enemyNames;
-    
-    // Position tracking for movement direction calculation
+
     std::map<app::EnemyAgent*, EnemyPositionHistory> enemyPositionHistory;
     std::mutex enemyPositionHistoryMtx;
-    
+
+    struct BoneLineCastCache
+    {
+        app::Vector3 lastBonePos      = {0.0f, 0.0f, 0.0f};
+        app::Vector3 lastPlayerEyePos = {0.0f, 0.0f, 0.0f};
+        bool         lastVisible      = false;
+        bool         valid            = false;
+    };
+
+    struct EnemyCacheEntry
+    {
+        BoneLineCastCache boneCache[64];
+        app::Transform*   boneTransforms[64];
+        bool              boneTransformCached[64];
+        BoneLineCastCache fallbackCache;
+        std::string       enemyName;
+
+        EnemyCacheEntry()
+        {
+            memset(boneTransforms, 0, sizeof(boneTransforms));
+            memset(boneTransformCached, 0, sizeof(boneTransformCached));
+        }
+    };
+
+    static std::unordered_map<app::EnemyAgent*, EnemyCacheEntry> linecastCache;
+    static constexpr float BONE_MOVE_THRESHOLD_SQ = 0.01f * 0.01f; // 1cm
+    static constexpr float EYE_MOVE_THRESHOLD_SQ  = 0.01f * 0.01f; // 1cm
+
+    static constexpr int PERF_LOG_INTERVAL = 120;
+
+    struct PerfStats
+    {
+        int    frames      = 0;
+        double totalUs     = 0.0;
+        double minUs       = 1e9;
+        double maxUs       = 0.0;
+        int    raycasts    = 0;
+        int    cacheHits   = 0;
+        int    animCalls   = 0;
+
+        void record(double frameUs, int frameCasts, int frameHits, int frameAnimCalls)
+        {
+            ++frames;
+            totalUs    += frameUs;
+            if (frameUs < minUs) minUs = frameUs;
+            if (frameUs > maxUs) maxUs = frameUs;
+            raycasts   += frameCasts;
+            cacheHits  += frameHits;
+            animCalls  += frameAnimCalls;
+        }
+
+        void logAndReset()
+        {
+            if (frames == 0) return;
+            double avgUs    = totalUs / frames;
+            int    totalOps = raycasts + cacheHits;
+            float  hitRate  = totalOps > 0 ? 100.f * cacheHits / totalOps : 0.f;
+            il2cppi_log_write(std::format(
+                "[EnemyPerf] frames={} avg={:.1f}us min={:.1f}us max={:.1f}us | "
+                "animCalls={} raycasts={} cacheHits={} hitRate={:.1f}%",
+                frames, avgUs, minUs, maxUs,
+                animCalls, raycasts, cacheHits, hitRate));
+            *this = PerfStats{};
+        }
+    };
+    static PerfStats perf;
+
     app::Vector3 GetEnemyMovementDirection(app::EnemyAgent* enemy)
     {
         app::Vector3 zeroVec = {0.0f, 0.0f, 0.0f};
-        if (enemy == nullptr)
-            return zeroVec;
-            
+        if (enemy == nullptr) return zeroVec;
         std::lock_guard<std::mutex> lock(enemyPositionHistoryMtx);
         auto it = enemyPositionHistory.find(enemy);
         if (it != enemyPositionHistory.end() && it->second.hasValidDirection)
-        {
             return it->second.movementDirection;
-        }
         return zeroVec;
     }
-    
-    bool isBoneVisible(Enemy::Bone& bone)
+
+    static int s_frameCasts     = 0;
+    static int s_frameHits      = 0;
+    static int s_frameAnimCalls = 0;
+
+    static bool isBoneVisible_cached(BoneLineCastCache& cache, const app::Vector3& bonePos,
+                                     const app::Vector3& eyePos)
     {
-        bone.visible = !app::Physics_Linecast_1(G::localPlayer->fields.m_eyePosition, bone.position, (*app::LayerManager__TypeInfo)->static_fields->MASK_DEFAULT, NULL);
-        return bone.visible;
+        if (cache.valid)
+        {
+            float bdx = bonePos.x - cache.lastBonePos.x,
+                  bdy = bonePos.y - cache.lastBonePos.y,
+                  bdz = bonePos.z - cache.lastBonePos.z;
+            float edx = eyePos.x - cache.lastPlayerEyePos.x,
+                  edy = eyePos.y - cache.lastPlayerEyePos.y,
+                  edz = eyePos.z - cache.lastPlayerEyePos.z;
+            if (bdx*bdx + bdy*bdy + bdz*bdz < BONE_MOVE_THRESHOLD_SQ &&
+                edx*edx + edy*edy + edz*edz < EYE_MOVE_THRESHOLD_SQ)
+            {
+                ++s_frameHits;
+                return cache.lastVisible;
+            }
+        }
+        
+        ++s_frameCasts;
+        cache.lastVisible = !app::Physics_Linecast_1(
+            eyePos, bonePos,
+            (*app::LayerManager__TypeInfo)->static_fields->MASK_DEFAULT, NULL);
+        cache.lastBonePos      = bonePos;
+        cache.lastPlayerEyePos = eyePos;
+        cache.valid            = true;
+        return cache.lastVisible;
     }
 
     bool isValidDistance(bool visible, float distance)
@@ -47,15 +138,15 @@ namespace Enemy
                 return true;
             if (Aimbot::settings.toggleKey.isToggled() && distance < Aimbot::settings.maxDistance)
                 return true;
-            return false;
         }
-        else {
+        else
+        {
             if (ESP::enemyESP.nonVisibleSec.show && distance < ESP::enemyESP.nonVisibleSec.renderDistance)
                 return true;
             if (Aimbot::settings.toggleKey.isToggled() && !Aimbot::settings.visibleOnly && distance < Aimbot::settings.maxDistance)
                 return true;
-            return false;
         }
+        return false;
     }
 
     void _RefreshEnemyAgents()
@@ -65,192 +156,211 @@ namespace Enemy
         if (G::localPlayer == nullptr)
             return;
 
-        std::vector<std::shared_ptr<EnemyInfo>> enemiesTemp;
+        auto perfStart  = std::chrono::high_resolution_clock::now();
+        s_frameCasts    = 0;
+        s_frameHits      = 0;
+        s_frameAnimCalls = 0;
+
+        app::Vector3 eyePos = G::localPlayer->fields.m_eyePosition;
+        app::Vector3 localPos = G::localPlayer->fields.m_goodPosition;
+
+        const bool needVisibilityCheck =
+            ESP::enemyESP.visibleSec.show || ESP::enemyESP.nonVisibleSec.show ||
+            (Aimbot::settings.toggleKey.isToggled() && Aimbot::settings.visibleOnly);
+
+        static EnemyVec enemiesTemp;
+        enemiesTemp.clear();
+        if (enemiesTemp.capacity() < 64) enemiesTemp.reserve(128);
 
         auto courseNodesList = (*app::StaticUpdateManager__TypeInfo)->static_fields->courseNodes;
         for (int i = 0; i < courseNodesList->fields._size; i++)
         {
             auto courseNode = courseNodesList->fields._items->vector[i];
+            if (!courseNode) continue;
             auto enemiesList = courseNode->fields.m_enemiesInNode;
+            if (!enemiesList) continue;
+
             for (int j = 0; j < enemiesList->fields._size; j++)
             {
                 auto enemyAgent = enemiesList->fields._items->vector[j];
-                if (enemyAgent == NULL)
+                if (enemyAgent == NULL || !enemyAgent->fields.m_alive)
+                    continue;
+
+                app::Vector3 enemyPos = app::EnemyAgent_get_Position(enemyAgent, NULL);
+                float dx = enemyPos.x - localPos.x, dy = enemyPos.y - localPos.y, dz = enemyPos.z - localPos.z;
+                float distanceSq = dx*dx + dy*dy + dz*dz;
+                float distance = sqrtf(distanceSq);
+
+                float maxDist = (std::max<float>)((std::max<float>)((float)ESP::enemyESP.visibleSec.renderDistance, (float)ESP::enemyESP.nonVisibleSec.renderDistance), (float)Aimbot::settings.maxDistance);
+                if (distance > maxDist)
                 {
-                    //std::cout << "found null enemyAgent\n";
+                    if (distance > maxDist + 50.0f) linecastCache.erase(enemyAgent);
                     continue;
                 }
 
-                float distance = app::Vector3_Distance(app::EnemyAgent_get_Position(enemyAgent, NULL), G::localPlayer->fields.m_goodPosition, NULL);
-                if ((!Aimbot::settings.toggleKey.isToggled() || distance > Aimbot::settings.maxDistance)
-                    && (!ESP::enemyESP.visibleSec.show || distance > ESP::enemyESP.visibleSec.renderDistance)
-                    && (!ESP::enemyESP.nonVisibleSec.show || distance > ESP::enemyESP.nonVisibleSec.renderDistance))
-                {
-                    continue; // No point of keeping around info of enemies we don't use
-                }
+                auto& cacheEntry = linecastCache[enemyAgent];
+                if (cacheEntry.enemyName.empty())
+                    cacheEntry.enemyName = il2cppi_to_string(
+                        app::Object_1_GetName(reinterpret_cast<app::Object_1*>(enemyAgent), NULL));
 
-                app::Object_1* enemyObject = reinterpret_cast<app::Object_1*>(enemyAgent);
-                std::string enemyName = il2cppi_to_string(app::Object_1_GetName(enemyObject, NULL));
+                struct TempLimb { app::Vector3 pos; app::Dam_EnemyDamageLimb* ptr; };
+                TempLimb tempLimbs[32];
+                int tempLimbCount = 0;
 
-                using h = std::hash<float>;
-                static auto hash = [](const app::Vector3& v) { return h()(v.x) + h()(v.y) + h()(v.z); };
-                static auto equal = [](const app::Vector3& lhs, const app::Vector3& rhs) { return lhs.x == rhs.x && lhs.y == rhs.y && lhs.z == rhs.z; };
-                std::unordered_map<app::Vector3, app::Dam_EnemyDamageLimb*, decltype(hash), decltype(equal)> damageableBones(8, hash, equal);
-                std::vector<Bone> damageableBonesVec;
+                auto enemyInfo = std::make_shared<EnemyInfo>();
+                enemyInfo->visible = false;
+                enemyInfo->enemyAgent = enemyAgent;
+                enemyInfo->enemyObjectName = cacheEntry.enemyName;
+                enemyInfo->distance = distance;
 
                 auto damageLimbsList = enemyAgent->fields.Damage->fields.DamageLimbs;
-                auto damageLimbs = damageLimbsList->vector;
-
-                for (int i = 0; i < damageLimbsList->max_length; i++)
-                {
-                    auto limb = damageLimbs[i];
-                    auto limbPos = app::Dam_EnemyDamageLimb_get_DamageTargetPos(limb, NULL);
-                    damageableBones.insert(std::pair<app::Vector3, app::Dam_EnemyDamageLimb*>(limbPos, limb));
-
-                    Bone bone;
-                    bone.position = limbPos;
-                    isBoneVisible(bone);
-                    bone.damageable = true;
-                    bone.destroyed = limb->fields._IsDestroyed_k__BackingField;
-                    bone.limbType = limb->fields.m_type;
-                    bone.health = limb->fields.m_health;
-                    bone.limbPtr = limb;  // Store limb pointer for real-time position update
-                    damageableBonesVec.push_back(bone);
-                }
-
-                std::map<app::HumanBodyBones__Enum, Bone> bonesMap;
-                bool visible = false;
-                for (std::vector<app::HumanBodyBones__Enum>::const_iterator it = Enemy::WantedBones.begin(); it != Enemy::WantedBones.end(); ++it)
-                {
-                    auto boneTransform = app::Animator_GetBoneTransform(enemyAgent->fields.Anim, (*it), NULL);
-                    if (boneTransform == NULL)
-                        continue;
-                    Bone bone;
-                    bone.position = app::Transform_get_position(boneTransform, NULL);
-                    if (isBoneVisible(bone))
-                        visible = true;
-                    if (damageableBones.contains(bone.position))
+                if (damageLimbsList) {
+                    auto damageLimbs = damageLimbsList->vector;
+                    int limbCount = (std::min)((int)damageLimbsList->max_length, 32);
+                    for (int k = 0; k < limbCount; k++)
                     {
-                        auto damageableBone = damageableBones[bone.position];
+                        auto limb = damageLimbs[k];
+                        if (!limb) continue;
+                        auto limbPos = app::Dam_EnemyDamageLimb_get_DamageTargetPos(limb, NULL);
+                        tempLimbs[tempLimbCount++] = { limbPos, limb };
+                        Bone& bone = enemyInfo->damageableBones[enemyInfo->damageableBoneCount++];
+                        bone.position = limbPos;
                         bone.damageable = true;
-                        bone.destroyed = damageableBone->fields._IsDestroyed_k__BackingField;
-                        bone.limbType = damageableBone->fields.m_type;
-                        bone.health = damageableBone->fields.m_health;
+                        bone.destroyed = limb->fields._IsDestroyed_k__BackingField;
+                        bone.limbType = limb->fields.m_type;
+                        bone.health = limb->fields.m_health;
+                        bone.limbPtr = limb;
                     }
-                    bonesMap.insert(std::pair<app::HumanBodyBones__Enum, Bone>((*it), bone));
                 }
-                if (!bonesMap.contains(app::HumanBodyBones__Enum::Head) ||
-                    !bonesMap.contains(app::HumanBodyBones__Enum::LeftFoot) ||
-                    !bonesMap.contains(app::HumanBodyBones__Enum::RightFoot))
-                {
-                    Bone fallbackBone;
-                    fallbackBone.position = app::EnemyAgent_get_Position(enemyAgent, NULL);
-                    if (isBoneVisible(fallbackBone))
-                        visible = true;
 
-                    float distance = app::Vector3_Distance(fallbackBone.position, G::localPlayer->fields.m_goodPosition, NULL);
-                    if (!isValidDistance(visible, distance))
-                        continue;
-                    auto enInfo = std::shared_ptr<EnemyInfo>(new EnemyInfo(visible, bonesMap, damageableBonesVec, enemyAgent, enemyName, distance, fallbackBone));
-                    enemiesTemp.push_back(enInfo);
-                }
-                else
+                for (auto boneType : Enemy::WantedBones)
                 {
-                    float distance = app::Vector3_Distance(bonesMap[app::HumanBodyBones__Enum::Head].position, G::localPlayer->fields.m_goodPosition, NULL);
-                    if (!isValidDistance(visible, distance))
-                        continue;
-                    auto enInfo = std::shared_ptr<EnemyInfo>(new EnemyInfo(visible, bonesMap, damageableBonesVec, enemyAgent, enemyName, distance));
-                    enemiesTemp.push_back(enInfo);
+                    int idx = static_cast<int>(boneType);
+                    if (idx < 0 || idx >= 64) continue;
+
+                    app::Transform* boneTransform;
+                    if (cacheEntry.boneTransformCached[idx])
+                    {
+                        boneTransform = cacheEntry.boneTransforms[idx];
+                    }
+                    else
+                    {
+                        ++s_frameAnimCalls;
+                        boneTransform = app::Animator_GetBoneTransform(enemyAgent->fields.Anim, boneType, NULL);
+                        cacheEntry.boneTransforms[idx] = boneTransform;
+                        cacheEntry.boneTransformCached[idx] = true;
+                    }
+                    if (boneTransform == nullptr) continue;
+
+                    Bone bone;
+                    app::Transform_get_position_Injected(boneTransform, &bone.position, NULL);
+
+                    if (needVisibilityCheck)
+                    {
+                        auto& boneCache = cacheEntry.boneCache[idx];
+                        if (isBoneVisible_cached(boneCache, bone.position, eyePos))
+                            enemyInfo->visible = true;
+                        bone.visible = boneCache.lastVisible;
+                    }
+
+                    for (int k = 0; k < tempLimbCount; k++) {
+                        if (tempLimbs[k].pos.x == bone.position.x &&
+                            tempLimbs[k].pos.y == bone.position.y &&
+                            tempLimbs[k].pos.z == bone.position.z) {
+                            auto db = tempLimbs[k].ptr;
+                            bone.damageable = true;
+                            bone.destroyed = db->fields._IsDestroyed_k__BackingField;
+                            bone.limbType = db->fields.m_type;
+                            bone.health = db->fields.m_health;
+                            bone.limbPtr = db;
+                            break;
+                        }
+                    }
+
+                    enemyInfo->bones[idx] = std::move(bone);
+                    enemyInfo->hasBone[idx] = true;
                 }
+
+                bool hasEssentialBones = enemyInfo->hasBone[static_cast<int>(app::HumanBodyBones__Enum::Head)] &&
+                                         enemyInfo->hasBone[static_cast<int>(app::HumanBodyBones__Enum::LeftFoot)] &&
+                                         enemyInfo->hasBone[static_cast<int>(app::HumanBodyBones__Enum::RightFoot)];
+
+                if (!hasEssentialBones)
+                {
+                    enemyInfo->fallbackBone.position = enemyPos;
+                    if (needVisibilityCheck)
+                    {
+                        isBoneVisible_cached(cacheEntry.fallbackCache, enemyInfo->fallbackBone.position, eyePos);
+                        enemyInfo->fallbackBone.visible = cacheEntry.fallbackCache.lastVisible;
+                        enemyInfo->visible = enemyInfo->fallbackBone.visible;
+                    }
+                    enemyInfo->useFallback = true;
+                }
+
+                if (isValidDistance(enemyInfo->visible, distance))
+                    enemiesTemp.push_back(std::move(enemyInfo));
             }
         }
 
-        G::enemyVecMtx.lock();
-        enemies.clear();
-        enemies = enemiesTemp;
-        G::enemyVecMtx.unlock();
-
-        G::enemyAimMtx.lock();
-        enemiesAimbot.clear();
-        enemiesAimbot = enemiesTemp;
-        G::enemyAimMtx.unlock();
-        
-        // Update position history for movement direction tracking
+        std::unordered_set<app::EnemyAgent*> validEnemies;
         {
             std::lock_guard<std::mutex> lock(enemyPositionHistoryMtx);
-            
-            // Track which enemies are still valid
-            std::set<app::EnemyAgent*> validEnemies;
-            
             for (const auto& enemyInfo : enemiesTemp)
             {
                 app::EnemyAgent* agent = enemyInfo->enemyAgent;
                 validEnemies.insert(agent);
-                
                 app::Vector3 currentPos = app::EnemyAgent_get_Position(agent, NULL);
-                
                 auto it = enemyPositionHistory.find(agent);
                 if (it != enemyPositionHistory.end())
                 {
-                    // Update existing entry
                     it->second.previousPosition = it->second.currentPosition;
-                    it->second.currentPosition = currentPos;
-                    
-                    // Calculate movement direction
-                    app::Vector3 delta;
-                    delta.x = currentPos.x - it->second.previousPosition.x;
-                    delta.y = 0.0f;  // Ignore vertical movement for horizontal direction
-                    delta.z = currentPos.z - it->second.previousPosition.z;
-                    
-                    float len = sqrtf(delta.x * delta.x + delta.z * delta.z);
-                    if (len > 0.01f)  // Moving threshold
+                    it->second.currentPosition  = currentPos;
+                    float dx = currentPos.x - it->second.previousPosition.x;
+                    float dz = currentPos.z - it->second.previousPosition.z;
+                    float lenSq = dx*dx + dz*dz;
+                    if (lenSq > 0.0001f)
                     {
-                        it->second.movementDirection.x = delta.x / len;
-                        it->second.movementDirection.y = 0.0f;
-                        it->second.movementDirection.z = delta.z / len;
+                        float len = sqrtf(lenSq);
+                        it->second.movementDirection = { dx / len, 0.0f, dz / len };
                         it->second.hasValidDirection = true;
                     }
-                    // Keep previous direction if not moving significantly
                 }
                 else
-                {
-                    // New enemy, initialize
-                    EnemyPositionHistory history;
-                    history.previousPosition = currentPos;
-                    history.currentPosition = currentPos;
-                    history.movementDirection = {0.0f, 0.0f, 0.0f};
-                    history.hasValidDirection = false;
-                    enemyPositionHistory[agent] = history;
-                }
+                    enemyPositionHistory[agent] = { currentPos, currentPos, {0,0,0}, false };
             }
-            
-            // Clean up entries for enemies that no longer exist
             for (auto it = enemyPositionHistory.begin(); it != enemyPositionHistory.end(); )
             {
                 if (validEnemies.find(it->first) == validEnemies.end())
-                {
                     it = enemyPositionHistory.erase(it);
-                }
                 else
-                {
                     ++it;
-                }
             }
         }
+
+        for (auto it = linecastCache.begin(); it != linecastCache.end(); )
+            it = validEnemies.count(it->first) ? std::next(it) : linecastCache.erase(it);
+
+        auto sharedVec = std::make_shared<EnemyVec>(std::move(enemiesTemp));
+        enemies.store(sharedVec);
+        enemiesAimbot.store(std::move(sharedVec));
+
+        auto perfEnd = std::chrono::high_resolution_clock::now();
+        double frameUs = std::chrono::duration<double, std::micro>(perfEnd - perfStart).count();
+        perf.record(frameUs, s_frameCasts, s_frameHits, s_frameAnimCalls);
+        if (perf.frames >= PERF_LOG_INTERVAL)
+            perf.logAndReset();
     }
 
     void _SpawnEnemy(int id, app::AgentMode__Enum agentMode)
     {
         app::EnemyAllocator* enemyAllocator = (*app::EnemyAllocator__TypeInfo)->static_fields->Current;
         app::PlayerAgent* localPlayer = app::PlayerManager_2_GetLocalPlayerAgent(nullptr);
+        if (!localPlayer) return;
         app::Agent* localPlayerAgent = reinterpret_cast<app::Agent*>(localPlayer);
         app::Quaternion playerRotation = app::Agent_get_Rotation(localPlayerAgent, NULL);
         app::AIG_CourseNode* courseNode = localPlayer->fields.m_courseNode;
 
-        app::Vector3 screenCenter;
-        screenCenter.x = G::screenWidth / 2.0f;
-        screenCenter.y = G::screenHeight / 2.0f;
-        screenCenter.z = 0;
+        app::Vector3 screenCenter = { G::screenWidth / 2.0f, G::screenHeight / 2.0f, 0 };
         app::Ray screenCenterRay = app::Camera_ScreenPointToRay_2(G::mainCamera, screenCenter, NULL);
         app::RaycastHit raycastHit;
         if (app::Physics_Raycast_14(screenCenterRay, &raycastHit, 200, NULL))
@@ -265,9 +375,8 @@ namespace Enemy
         G::callbacks.push([] { _RefreshEnemyAgents(); });
     }
 
-    void SpawnEnemy(int id, app::AgentMode__Enum agentMode = app::AgentMode__Enum::Off)
+    void SpawnEnemy(int id, app::AgentMode__Enum agentMode)
     {
         G::callbacks.push([id, agentMode] { _SpawnEnemy(id, agentMode); });
     }
 }
-
