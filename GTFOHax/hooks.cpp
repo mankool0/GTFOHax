@@ -425,7 +425,7 @@ bool Hooks::hkWeapon_CastWeaponRay_1(app::Transform* alignTransform, app::Weapon
                         bool isValid = false;
                         if (localTargetEnemy != nullptr)
                         {
-                            auto aimSnap = Enemy::enemiesAimbot.load();
+                            auto aimSnap = Enemy::enemiesReady.load();
                             if (aimSnap)
                                 for (const auto& enemyInfo : *aimSnap)
                                     if (enemyInfo->enemyAgent == localTargetEnemy) { isValid = true; break; }
@@ -493,7 +493,7 @@ bool Hooks::hkWeapon_CastWeaponRay_1(app::Transform* alignTransform, app::Weapon
                         bool isValid = false;
                         if (localTargetEnemy != nullptr)
                         {
-                            auto aimSnap = Enemy::enemiesAimbot.load();
+                            auto aimSnap = Enemy::enemiesReady.load();
                             if (aimSnap)
                                 for (const auto& enemyInfo : *aimSnap)
                                     if (enemyInfo->enemyAgent == localTargetEnemy) { isValid = true; break; }
@@ -603,7 +603,7 @@ bool Hooks::hkWeapon_CastWeaponRay_1(app::Transform* alignTransform, app::Weapon
                 
                 if (localTargetEnemy != nullptr)
                 {
-                    auto aimSnap = Enemy::enemiesAimbot.load();
+                    auto aimSnap = Enemy::enemiesReady.load();
                     for (const auto& enemyInfo : (aimSnap ? *aimSnap : Enemy::EnemyVec{}))
                     {
                         if (enemyInfo->enemyAgent == localTargetEnemy)
@@ -885,6 +885,7 @@ void Hooks::hkApplication_Quit(int32_t exitCode, MethodInfo* method)
     il2cppi_log_write("Application::Quit called. Shutting down...");
     G::gameQuit = true;
     G::running = false;
+    Enemy::StopRefreshThread();
     Hooks::RemoveHooks(false);
 
     // Trampoline is invalid after RemoveHooks, call original directly
@@ -896,6 +897,7 @@ void Hooks::hkApplication_Quit_1(MethodInfo* method)
     il2cppi_log_write("Application::Quit_1 called. Shutting down...");
     G::gameQuit = true;
     G::running = false;
+    Enemy::StopRefreshThread();
     Hooks::RemoveHooks(false);
 
     app::Application_Quit_1(method);
@@ -1251,7 +1253,8 @@ void Hooks::hkLocalPlayerAgent_LateUpdate(app::LocalPlayerAgent* __this, MethodI
     static auto fpOFunc = reinterpret_cast<void (*)(app::LocalPlayerAgent*, MethodInfo*)>(hooks["LocalPlayerAgent_LateUpdate"]);
     fpOFunc(__this, method);
 
-    Enemy::_RefreshEnemyAgents();
+    Enemy::RefreshEnemyAgents();
+    Enemy::UpdateEnemyVisibility();
 }
 
 HRESULT __stdcall Hooks::hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Flags)

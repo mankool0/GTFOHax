@@ -176,7 +176,7 @@ namespace Aimbot
             
             // Validate that targetEnemy still exists in the enemy list
             bool enemyStillValid = false;
-            auto aimSnap = Enemy::enemiesAimbot.load();
+            auto aimSnap = Enemy::enemiesReady.load();
             if (aimSnap)
             {
                 for (const auto& enemyInfo : *aimSnap)
@@ -247,7 +247,7 @@ namespace Aimbot
         app::LocalPlayerAgent* localPlayerAgent = reinterpret_cast<app::LocalPlayerAgent*>(G::localPlayer);
         app::Vector3 playerForwardVec = app::FPSCamera_get_Forward(localPlayerAgent->fields.m_FPSCamera, NULL);
 
-        auto aimSnap = Enemy::enemiesAimbot.load();
+        auto aimSnap = Enemy::enemiesReady.load();
         if (!aimSnap || aimSnap->empty())
         {
             isSilentAiming = false;

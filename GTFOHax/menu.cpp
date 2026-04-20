@@ -1042,7 +1042,7 @@ void RenderEnemyAgent(Enemy::EnemyInfo* enemyInfo, ESP::AgentESPSection* espSett
         std::string enemyName = "";
         if (espSettings->showName)
         {
-            enemyName = enemyInfo->enemyObjectName;
+            enemyName = std::string(enemyInfo->enemyObjectName);
             auto gPrefabIndex = enemyName.find("GeneratedPrefab");
             if (gPrefabIndex != std::string::npos)
             {
@@ -1119,7 +1119,7 @@ void RenderEnemyAgent(Enemy::EnemyInfo* enemyInfo, ESP::AgentESPSection* espSett
 
 void RenderEnemyESP()
 {
-    auto enemiesSnap = Enemy::enemies.load();
+    auto enemiesSnap = Enemy::enemiesReady.load();
     if (!enemiesSnap || enemiesSnap->empty()) return;
 
     // Use a temporary vector of pointers for sorting to avoid copying shared_ptrs

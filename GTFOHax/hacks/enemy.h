@@ -2,6 +2,7 @@
 #include "globals.h"
 #include <vector>
 #include <map>
+#include <unordered_map>
 #include <atomic>
 
 namespace Enemy
@@ -110,6 +111,20 @@ namespace Enemy
             memset(screenPositionsValid, 0, sizeof(screenPositionsValid));
         }
 
+        void reset()
+        {
+            visible = false;
+            enemyAgent = nullptr;
+            distance = 0;
+            useFallback = false;
+            damageableBoneCount = 0;
+            enemyObjectName.clear();
+            memset(hasBone, 0, sizeof(hasBone));
+            memset(screenPositionsValid, 0, sizeof(screenPositionsValid));
+            // bones[] / damageableBones[] / fallbackBone / screenPositions[]
+            // are written before being read again, so no reset needed here.
+        }
+
         inline const Bone* getBone(app::HumanBodyBones__Enum boneType) const
         {
             int idx = static_cast<int>(boneType);
@@ -120,8 +135,8 @@ namespace Enemy
     };
 
     using EnemyVec = std::vector<std::shared_ptr<EnemyInfo>>;
-    extern std::atomic<std::shared_ptr<EnemyVec>> enemies;
-    extern std::atomic<std::shared_ptr<EnemyVec>> enemiesAimbot;
+    extern std::atomic<std::shared_ptr<EnemyVec>> enemies;      // pending: background thread (positions only)
+    extern std::atomic<std::shared_ptr<EnemyVec>> enemiesReady; // ready: game thread visibility-annotated
     extern std::map<std::string, int> enemyIDs;
     extern std::vector<std::string> enemyNames;
     
@@ -132,14 +147,17 @@ namespace Enemy
         app::Vector3 currentPosition;
         app::Vector3 movementDirection;  // Normalized direction
         bool hasValidDirection;
+        uint32_t lastTouchFrame;
     };
-    extern std::map<app::EnemyAgent*, EnemyPositionHistory> enemyPositionHistory;
-    extern std::mutex enemyPositionHistoryMtx;
-    
-    // Get the movement direction of an enemy (returns normalized vector, or zero vector if not moving)
+    extern std::unordered_map<app::EnemyAgent*, EnemyPositionHistory> enemyPositionHistory;
+
+    // Get the movement direction of an enemy (returns normalized vector, or zero vector if not moving).
+    // Must be called from the same (main/game) thread that drives _RefreshEnemyAgents.
     app::Vector3 GetEnemyMovementDirection(app::EnemyAgent* enemy);
 
     void _RefreshEnemyAgents();
     void RefreshEnemyAgents();
+    void UpdateEnemyVisibility();
+    void StopRefreshThread();
     void SpawnEnemy(int id, app::AgentMode__Enum agentMode);
 }
