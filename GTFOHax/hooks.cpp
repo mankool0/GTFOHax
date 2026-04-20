@@ -1276,11 +1276,9 @@ HRESULT __stdcall Hooks::hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval
             pBackBuffer->Release();
 
             ImGuiIO& io = ImGui::GetIO();
-            io.ImeWindowHandle = G::windowHwnd;
-            
             // Load font with Chinese support
             ImFontConfig config;
-            config.FontBuilderFlags |= ImGuiFreeTypeBuilderFlags::ImGuiFreeTypeBuilderFlags_ForceAutoHint;
+            config.FontLoaderFlags |= ImGuiFreeTypeBuilderFlags_ForceAutoHint;
             
             const ImWchar* chineseRanges = io.Fonts->GetGlyphRangesChineseFull();
 
@@ -1318,10 +1316,6 @@ HRESULT __stdcall Hooks::hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval
                 G::chineseFontAvailable = false;
             }
             
-            unsigned char* pixels;
-            int width, height;
-            io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
-            
             // Initialize language after font loading based on availability
             I18N::InitializeAfterFontLoad(G::chineseFontAvailable);
 
@@ -1349,7 +1343,6 @@ HRESULT __stdcall Hooks::hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval
         RenderWatermark();
         RenderESP();
 
-
         if (G::menuKey.isPressed())
             G::showMenu = !G::showMenu;
         if (G::unloadKey.isPressed())
@@ -1361,7 +1354,6 @@ HRESULT __stdcall Hooks::hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval
         if (G::showMenu)
             DrawMenu();
     }
-
 
     ImGui::EndFrame();
     ImGui::Render();

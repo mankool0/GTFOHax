@@ -198,11 +198,11 @@ bool KeyBind::setToPressedKey() noexcept
         }
     }
 
-    for (int i = 0; i < IM_ARRAYSIZE(ImGui::GetIO().KeysDown); ++i) {
+    for (int i = ImGuiKey_NamedKey_BEGIN; i < ImGuiKey_NamedKey_END; ++i) {
         if (!ImGui::IsKeyPressed(ImGuiKey(i)))
             continue;
 
-        if (const auto it = std::ranges::find(keyMap, i, &Key::code); it != keyMap.end()) {
+        if (const auto it = std::ranges::find(keyMap, ImGuiKey(i), &Key::code); it != keyMap.end()) {
             keyCode = static_cast<KeyCode>(std::distance(keyMap.begin(), it));
             // Treat AltGr as RALT
             if (keyCode == KeyCode::LCTRL && ImGui::IsKeyPressed(keyMap[KeyCode::RALT].code))
