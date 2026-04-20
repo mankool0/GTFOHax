@@ -2,6 +2,8 @@
 #include "globals.h"
 #include <vector>
 #include <map>
+#include <unordered_map>
+#include <atomic>
 
 namespace Enemy
 {
@@ -88,39 +90,53 @@ namespace Enemy
     {
         bool visible;
         app::EnemyAgent* enemyAgent;
-        std::map<app::HumanBodyBones__Enum, Bone> skeletonBones;
-        std::vector<Bone> damageableBones;
+        
+        Bone bones[64];
+        bool hasBone[64];
+        
+        ImVec2 screenPositions[64];
+        bool screenPositionsValid[64];
+
+        Bone damageableBones[32];
+        int  damageableBoneCount;
         Bone fallbackBone;
         std::string enemyObjectName;
         float distance;
         bool useFallback;
 
-        EnemyInfo(bool visible, std::map<app::HumanBodyBones__Enum, Bone> skeletonBones, std::vector<Bone> damageableBones, app::EnemyAgent* enemyAgent, std::string enemyObjectName, float distance)
+        // Efficient constructor
+        EnemyInfo() : visible(false), enemyAgent(nullptr), distance(0), useFallback(false), damageableBoneCount(0)
         {
-            this->visible = visible;
-            this->skeletonBones = skeletonBones;
-            this->damageableBones = damageableBones;
-            this->enemyAgent = enemyAgent;
-            this->enemyObjectName = enemyObjectName;
-            this->distance = distance;
-            this->useFallback = false;
+            memset(hasBone, 0, sizeof(hasBone));
+            memset(screenPositionsValid, 0, sizeof(screenPositionsValid));
         }
-        
-        EnemyInfo(bool visible, std::map<app::HumanBodyBones__Enum, Bone> skeletonBones, std::vector<Bone> damageableBones, app::EnemyAgent* enemyAgent, std::string enemyObjectName, float distance, Bone fallbackBone)
+
+        void reset()
         {
-            this->visible = visible;
-            this->skeletonBones = skeletonBones;
-            this->damageableBones = damageableBones;
-            this->enemyAgent = enemyAgent;
-            this->enemyObjectName = enemyObjectName;
-            this->distance = distance;
-            this->fallbackBone = fallbackBone;
-            this->useFallback = true;
+            visible = false;
+            enemyAgent = nullptr;
+            distance = 0;
+            useFallback = false;
+            damageableBoneCount = 0;
+            enemyObjectName.clear();
+            memset(hasBone, 0, sizeof(hasBone));
+            memset(screenPositionsValid, 0, sizeof(screenPositionsValid));
+            // bones[] / damageableBones[] / fallbackBone / screenPositions[]
+            // are written before being read again, so no reset needed here.
+        }
+
+        inline const Bone* getBone(app::HumanBodyBones__Enum boneType) const
+        {
+            int idx = static_cast<int>(boneType);
+            if (idx >= 0 && idx < 64 && hasBone[idx])
+                return &bones[idx];
+            return nullptr;
         }
     };
 
-    extern std::vector<std::shared_ptr<EnemyInfo>> enemies;
-    extern std::vector<std::shared_ptr<EnemyInfo>> enemiesAimbot;
+    using EnemyVec = std::vector<std::shared_ptr<EnemyInfo>>;
+    extern std::atomic<std::shared_ptr<EnemyVec>> enemies;      // pending: background thread (positions only)
+    extern std::atomic<std::shared_ptr<EnemyVec>> enemiesReady; // ready: game thread visibility-annotated
     extern std::map<std::string, int> enemyIDs;
     extern std::vector<std::string> enemyNames;
     
@@ -131,14 +147,17 @@ namespace Enemy
         app::Vector3 currentPosition;
         app::Vector3 movementDirection;  // Normalized direction
         bool hasValidDirection;
+        uint32_t lastTouchFrame;
     };
-    extern std::map<app::EnemyAgent*, EnemyPositionHistory> enemyPositionHistory;
-    extern std::mutex enemyPositionHistoryMtx;
-    
-    // Get the movement direction of an enemy (returns normalized vector, or zero vector if not moving)
+    extern std::unordered_map<app::EnemyAgent*, EnemyPositionHistory> enemyPositionHistory;
+
+    // Get the movement direction of an enemy (returns normalized vector, or zero vector if not moving).
+    // Must be called from the same (main/game) thread that drives _RefreshEnemyAgents.
     app::Vector3 GetEnemyMovementDirection(app::EnemyAgent* enemy);
 
     void _RefreshEnemyAgents();
     void RefreshEnemyAgents();
+    void UpdateEnemyVisibility();
+    void StopRefreshThread();
     void SpawnEnemy(int id, app::AgentMode__Enum agentMode);
 }

@@ -42,9 +42,9 @@ namespace G {
     extern std::mutex worldTerminalsMtx;
     extern std::mutex worldHSUMtx;
     extern std::mutex worldBulkheadMtx;
-    extern std::mutex enemyVecMtx;
     extern std::mutex imguiMtx;
     extern std::mutex enemyAimMtx;
+    extern std::mutex matrixMtx;
 
     extern bool initialized;
     extern bool showMenu;
@@ -59,6 +59,7 @@ namespace G {
     extern app::Matrix4x4 w2CamMatrix;
     extern app::Matrix4x4 projMatrix;
     extern app::Matrix4x4 viewMatrix;
+    extern app::Matrix4x4 renderViewMatrix;
     extern app::PlayerAgent* localPlayer;
     extern int32_t screenHeight;
     extern int32_t screenWidth;

@@ -74,11 +74,11 @@ namespace Aimbot
                 
                 for (const auto& boneType : boneGroup)
                 {
-                    auto it = ghost.skeletonPositions.find(boneType);
-                    if (it == ghost.skeletonPositions.end())
+                    int idx = static_cast<int>(boneType);
+                    if (idx < 0 || idx >= 64 || !ghost.hasBone[idx])
                         continue;
                         
-                    app::Vector3 curPos = it->second;
+                    app::Vector3 curPos = ghost.skeletonPositions[idx];
                     
                     if (hasPrev && !(prevPos.x == 0.0f && prevPos.y == 0.0f && prevPos.z == 0.0f))
                     {
@@ -176,12 +176,16 @@ namespace Aimbot
             
             // Validate that targetEnemy still exists in the enemy list
             bool enemyStillValid = false;
-            for (const auto& enemyInfo : Enemy::enemiesAimbot)
+            auto aimSnap = Enemy::enemiesReady.load();
+            if (aimSnap)
             {
-                if (enemyInfo->enemyAgent == targetEnemy)
+                for (const auto& enemyInfo : *aimSnap)
                 {
-                    enemyStillValid = true;
-                    break;
+                    if (enemyInfo->enemyAgent == targetEnemy)
+                    {
+                        enemyStillValid = true;
+                        break;
+                    }
                 }
             }
             
@@ -243,17 +247,27 @@ namespace Aimbot
         app::LocalPlayerAgent* localPlayerAgent = reinterpret_cast<app::LocalPlayerAgent*>(G::localPlayer);
         app::Vector3 playerForwardVec = app::FPSCamera_get_Forward(localPlayerAgent->fields.m_FPSCamera, NULL);
 
-        G::enemyAimMtx.lock();
-        std::vector<std::shared_ptr<Enemy::EnemyInfo>> enemies = Enemy::enemiesAimbot;
-        G::enemyAimMtx.unlock();
+        auto aimSnap = Enemy::enemiesReady.load();
+        if (!aimSnap || aimSnap->empty())
+        {
+            isSilentAiming = false;
+            targetEnemy = nullptr;
+            targetLimb = nullptr;
+            return;
+        }
+
+        // Use a temporary vector of pointers for sorting
+        static std::vector<Enemy::EnemyInfo*> enemies;
+        enemies.clear();
+        enemies.reserve(aimSnap->size());
+        for (auto& enemy : *aimSnap)
+            enemies.push_back(enemy.get());
         
-        // TODO: Time this? Is it worth to sort and then loop again for convenience
-        // or should it all be done in a single loop?
         switch (settings.priority)
         {
             case Health:
             {
-                std::sort(enemies.begin(), enemies.end(), [](const std::shared_ptr<Enemy::EnemyInfo> lhs, const std::shared_ptr<Enemy::EnemyInfo> rhs) {
+                std::sort(enemies.begin(), enemies.end(), [](Enemy::EnemyInfo* lhs, Enemy::EnemyInfo* rhs) {
                     auto enemyDamageLhs = reinterpret_cast<app::Dam_SyncedDamageBase*>(lhs->enemyAgent->fields.Damage);
                     auto enemyDamageRhs = reinterpret_cast<app::Dam_SyncedDamageBase*>(rhs->enemyAgent->fields.Damage);
                     return enemyDamageLhs->fields._Health_k__BackingField < enemyDamageRhs->fields._Health_k__BackingField;
@@ -262,19 +276,21 @@ namespace Aimbot
             }
             case Distance:
             {
-                std::sort(enemies.begin(), enemies.end(), [](const std::shared_ptr<Enemy::EnemyInfo> lhs, const std::shared_ptr<Enemy::EnemyInfo> rhs) {
+                std::sort(enemies.begin(), enemies.end(), [](Enemy::EnemyInfo* lhs, Enemy::EnemyInfo* rhs) {
                     return lhs->distance < rhs->distance;
                     });
                 break;
             }
             case FOV:
             {
-                std::sort(enemies.begin(), enemies.end(), [localEyePos, playerForwardVec](const std::shared_ptr<Enemy::EnemyInfo> lhs, const std::shared_ptr<Enemy::EnemyInfo> rhs) {
-                    app::Vector3 lhsPos = lhs->useFallback ? lhs->fallbackBone.position : lhs->skeletonBones.at(app::HumanBodyBones__Enum::Head).position;
-                    app::Vector3 lhsVec = Math::Vector3Sub(lhsPos, localEyePos);
+                std::sort(enemies.begin(), enemies.end(), [localEyePos, playerForwardVec](Enemy::EnemyInfo* lhs, Enemy::EnemyInfo* rhs) {
+                    const Enemy::Bone* lhsHead = lhs->useFallback ? &lhs->fallbackBone : lhs->getBone(app::HumanBodyBones__Enum::Head);
+                    const Enemy::Bone* rhsHead = rhs->useFallback ? &rhs->fallbackBone : rhs->getBone(app::HumanBodyBones__Enum::Head);
+                    
+                    if (!lhsHead || !rhsHead) return false;
 
-                    app::Vector3 rhsPos = rhs->useFallback ? rhs->fallbackBone.position : rhs->skeletonBones.at(app::HumanBodyBones__Enum::Head).position;
-                    app::Vector3 rhsVec = Math::Vector3Sub(rhsPos, localEyePos);
+                    app::Vector3 lhsVec = Math::Vector3Sub(lhsHead->position, localEyePos);
+                    app::Vector3 rhsVec = Math::Vector3Sub(rhsHead->position, localEyePos);
 
                     return app::Vector3_Angle(playerForwardVec, lhsVec, NULL) < app::Vector3_Angle(playerForwardVec, rhsVec, NULL);
                     });
@@ -283,9 +299,8 @@ namespace Aimbot
         }
 
         bool foundEnemy = false;
-        for (auto it = enemies.begin(); it != enemies.end(); ++it)
+        for (auto enemyInfo : enemies)
         {
-            Enemy::EnemyInfo* enemyInfo = (*it).get();
             if ((settings.visibleOnly && !enemyInfo->visible)
                 || (settings.maxDistance < enemyInfo->distance))
                 continue;
@@ -296,10 +311,11 @@ namespace Aimbot
 
             Enemy::Bone bestBone;
             bool foundBone = false;
-            if (!enemyInfo->damageableBones.empty())
+            if (enemyInfo->damageableBoneCount > 0)
             {
-                for (Enemy::Bone& bone : enemyInfo->damageableBones)
+                for (int bi = 0; bi < enemyInfo->damageableBoneCount; bi++)
                 {
+                    Enemy::Bone& bone = enemyInfo->damageableBones[bi];
                     if (settings.visibleOnly && !bone.visible)
                         continue;
                     if (!settings.aimAtArmor && bone.limbType == app::eLimbDamageType__Enum::Armor)
@@ -310,14 +326,9 @@ namespace Aimbot
                     if (angle > (settings.aimFov / 2))
                         continue;
 
-                    if (enemyInfo->skeletonBones.contains(app::HumanBodyBones__Enum::Head))
-                    {
-                        // Destroyed head bone can't be shot at. Make sure this isn't that
-                        Enemy::Bone headBone = enemyInfo->skeletonBones[app::HumanBodyBones__Enum::Head]; // TODO: Fix map issue
-                        if (headBone.destroyed && Math::Vector3Eq(headBone.position, bone.position))
-                            continue;
-                    }
-
+                    const Enemy::Bone* headBone = enemyInfo->getBone(app::HumanBodyBones__Enum::Head);
+                    if (headBone && headBone->destroyed && Math::Vector3Eq(headBone->position, bone.position))
+                        continue;
 
                     if (!foundBone)
                     {
@@ -325,22 +336,19 @@ namespace Aimbot
                         foundBone = true;
                         continue;
                     }
-                    
+
                     if ((bestBone.limbType == app::eLimbDamageType__Enum::Armor && (bone.limbType == app::eLimbDamageType__Enum::Normal || bone.limbType == app::eLimbDamageType__Enum::Weakspot))
                         || (bestBone.limbType == app::eLimbDamageType__Enum::Normal && bone.limbType == app::eLimbDamageType__Enum::Weakspot))
-                    {
-                        // Current bone limbtype is better
-                        bestBone = bone;
-                        continue;
-                    }
-                    
-                    if (bestBone.limbType == bone.limbType &&
-                        (bone.health > bestBone.health))
                     {
                         bestBone = bone;
                         continue;
                     }
 
+                    if (bestBone.limbType == bone.limbType && bone.health > bestBone.health)
+                    {
+                        bestBone = bone;
+                        continue;
+                    }
                 }
             }
             else if (enemyInfo->useFallback && !(settings.visibleOnly && !enemyInfo->fallbackBone.visible))
