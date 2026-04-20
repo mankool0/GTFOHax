@@ -113,78 +113,6 @@ namespace Enemy
     static constexpr uint32_t CACHE_STALE_FRAMES   = 600;
     static constexpr uint32_t CACHE_SWEEP_INTERVAL = 120;
 
-    static constexpr int PERF_LOG_INTERVAL = 120;
-
-    struct PerfStats
-    {
-        int    frames      = 0;
-        double totalUs     = 0.0;
-        double loopUs      = 0.0;
-        double sweepUs     = 0.0;
-        double publishUs   = 0.0;
-        double bonePosUs   = 0.0;   // Transform_get_position_Injected
-        double limbPosUs   = 0.0;   // Dam_EnemyDamageLimb_get_DamageTargetPos
-        double animUs      = 0.0;   // Animator_GetBoneTransform
-        double visUs       = 0.0;   // isBoneVisible_cached (incl. raycasts)
-        double minUs       = 1e9;
-        double maxUs       = 0.0;
-        int    raycasts    = 0;
-        int    cacheHits   = 0;
-        int    animCalls   = 0;
-        int    enemyCount  = 0;
-        int    staleCount  = 0;
-
-        void record(double frameUs, double frameLoopUs, double frameSweepUs, double framePublishUs,
-                    double frameBonePosUs, double frameLimbPosUs, double frameAnimUs, double frameVisUs,
-                    int frameCasts, int frameHits, int frameAnimCalls, int frameEnemies, int frameStale)
-        {
-            ++frames;
-            totalUs    += frameUs;
-            loopUs     += frameLoopUs;
-            sweepUs    += frameSweepUs;
-            publishUs  += framePublishUs;
-            bonePosUs  += frameBonePosUs;
-            limbPosUs  += frameLimbPosUs;
-            animUs     += frameAnimUs;
-            visUs      += frameVisUs;
-            if (frameUs < minUs) minUs = frameUs;
-            if (frameUs > maxUs) maxUs = frameUs;
-            raycasts   += frameCasts;
-            cacheHits  += frameHits;
-            animCalls  += frameAnimCalls;
-            enemyCount += frameEnemies;
-            staleCount += frameStale;
-        }
-
-        void logAndReset()
-        {
-            if (frames == 0) return;
-            double avgUs        = totalUs   / frames;
-            double avgLoopUs    = loopUs    / frames;
-            double avgSweepUs   = sweepUs   / frames;
-            double avgPublishUs = publishUs / frames;
-            double avgBonePosUs = bonePosUs / frames;
-            double avgLimbPosUs = limbPosUs / frames;
-            double avgAnimUs    = animUs    / frames;
-            double avgVisUs     = visUs     / frames;
-            int    totalOps     = raycasts + cacheHits;
-            float  hitRate      = totalOps > 0 ? 100.f * cacheHits / totalOps : 0.f;
-            int   totalProcessed = enemyCount + staleCount;
-            float stalePct       = totalProcessed > 0 ? 100.f * staleCount / totalProcessed : 0.f;
-            il2cppi_log_write(std::format(
-                "[EnemyPerf] frames={} avg={:.1f}us min={:.1f}us max={:.1f}us | "
-                "loop={:.1f}us sweep={:.1f}us publish={:.1f}us | "
-                "bones+vis={:.1f}us limbs={:.1f}us anim={:.1f}us | "
-                "enemyCount={} stale={:.0f} stalePct={:.1f}% animCalls={} raycasts={} cacheHits={} hitRate={:.1f}%",
-                frames, avgUs, minUs, maxUs,
-                avgLoopUs, avgSweepUs, avgPublishUs,
-                avgBonePosUs, avgLimbPosUs, avgAnimUs,
-                enemyCount / frames, (double)staleCount / frames, stalePct,
-                animCalls, raycasts, cacheHits, hitRate));
-            *this = PerfStats{};
-        }
-    };
-    static PerfStats perf;
 
     app::Vector3 GetEnemyMovementDirection(app::EnemyAgent* enemy)
     {
@@ -196,10 +124,6 @@ namespace Enemy
             return it->second.movementDirection;
         return zeroVec;
     }
-
-    static int s_frameCasts     = 0;
-    static int s_frameHits      = 0;
-    static int s_frameAnimCalls = 0;
 
     static bool isBoneVisible_cached(BoneLineCastCache& cache, const app::Vector3& bonePos,
                                      const app::Vector3& eyePos)
@@ -215,12 +139,10 @@ namespace Enemy
             if (bdx*bdx + bdy*bdy + bdz*bdz < BONE_MOVE_THRESHOLD_SQ &&
                 edx*edx + edy*edy + edz*edz < EYE_MOVE_THRESHOLD_SQ)
             {
-                ++s_frameHits;
                 return cache.lastVisible;
             }
         }
-        
-        ++s_frameCasts;
+
         if (!g_maskResolved)
         {
             g_maskDefault  = (*app::LayerManager__TypeInfo)->static_fields->MASK_DEFAULT;
@@ -270,23 +192,11 @@ namespace Enemy
 
         ++g_refreshFrame;
 
-        auto perfStart  = std::chrono::high_resolution_clock::now();
-        s_frameCasts    = 0;
-        s_frameHits      = 0;
-        s_frameAnimCalls = 0;
-
-        double frameBonePosUs = 0.0;
-        double frameLimbPosUs = 0.0;
-        double frameAnimUs    = 0.0;
-        double frameVisUs     = 0.0;
-        int    frameEnemyCount = 0;
-
         app::Vector3 localPos = G::localPlayer->fields.m_goodPosition;
         static EnemyVec enemiesTemp;
         enemiesTemp.clear();
         if (enemiesTemp.capacity() < 64) enemiesTemp.reserve(128);
 
-        auto loopStart = std::chrono::high_resolution_clock::now();
         auto courseNodesList = (*app::StaticUpdateManager__TypeInfo)->static_fields->courseNodes;
         for (int i = 0; i < courseNodesList->fields._size; i++)
         {
@@ -352,8 +262,6 @@ namespace Enemy
                 enemyInfo->enemyObjectName = cacheEntry.enemyName;
                 enemyInfo->distance = distance;
 
-                ++frameEnemyCount;
-                auto t0enemy = std::chrono::high_resolution_clock::now();
                 auto damageLimbsList = enemyAgent->fields.Damage->fields.DamageLimbs;
                 if (damageLimbsList) {
                     if (!cacheEntry.cachedLimbsReady) {
@@ -385,9 +293,6 @@ namespace Enemy
                         bone.limbPtr   = cl.ptr;
                     }
                 }
-                frameLimbPosUs += std::chrono::duration<double, std::micro>(std::chrono::high_resolution_clock::now() - t0enemy).count();
-
-                auto t0bones = std::chrono::high_resolution_clock::now();
                 for (auto boneType : Enemy::WantedBones)
                 {
                     int idx = static_cast<int>(boneType);
@@ -400,10 +305,7 @@ namespace Enemy
                     }
                     else
                     {
-                        ++s_frameAnimCalls;
                         boneTransform = app::Animator_GetBoneTransform(enemyAgent->fields.Anim, boneType, NULL);
-                        frameAnimUs += std::chrono::duration<double, std::micro>(std::chrono::high_resolution_clock::now() - t0bones).count();
-                        t0bones = std::chrono::high_resolution_clock::now();
                         cacheEntry.boneTransforms[idx] = boneTransform;
                         cacheEntry.boneTransformCached[idx] = true;
                     }
@@ -438,7 +340,6 @@ namespace Enemy
                     enemyInfo->bones[idx] = std::move(bone);
                     enemyInfo->hasBone[idx] = true;
                 }
-                frameBonePosUs += std::chrono::duration<double, std::micro>(std::chrono::high_resolution_clock::now() - t0bones).count();
 
                 bool hasEssentialBones = enemyInfo->hasBone[static_cast<int>(app::HumanBodyBones__Enum::Head)] &&
                                          enemyInfo->hasBone[static_cast<int>(app::HumanBodyBones__Enum::LeftFoot)] &&
@@ -456,12 +357,7 @@ namespace Enemy
                     enemiesTemp.push_back(std::move(enemyInfo));
             }
         }
-        auto loopEnd = std::chrono::high_resolution_clock::now();
 
-        // Periodic lazy sweep: entries that weren't touched within CACHE_STALE_FRAMES
-        // are evicted. Runs every CACHE_SWEEP_INTERVAL frames,
-        // so the steady-state per-frame cost of cleanup is zero.
-        auto sweepStart = std::chrono::high_resolution_clock::now();
         if ((g_refreshFrame % CACHE_SWEEP_INTERVAL) == 0)
         {
             for (auto it = linecastCache.begin(); it != linecastCache.end(); )
@@ -482,22 +378,8 @@ namespace Enemy
                 }
             }
         }
-        auto sweepEnd = std::chrono::high_resolution_clock::now();
 
-        auto publishStart = std::chrono::high_resolution_clock::now();
         enemies.store(std::make_shared<EnemyVec>(std::move(enemiesTemp)));
-        auto publishEnd = std::chrono::high_resolution_clock::now();
-
-        auto perfEnd = std::chrono::high_resolution_clock::now();
-        double frameUs   = std::chrono::duration<double, std::micro>(perfEnd      - perfStart    ).count();
-        double loopMs    = std::chrono::duration<double, std::micro>(loopEnd      - loopStart   ).count();
-        double sweepMs   = std::chrono::duration<double, std::micro>(sweepEnd     - sweepStart  ).count();
-        double publishMs = std::chrono::duration<double, std::micro>(publishEnd   - publishStart).count();
-        perf.record(frameUs, loopMs, sweepMs, publishMs,
-                    frameBonePosUs, frameLimbPosUs, frameAnimUs, 0.0,
-                    s_frameCasts, s_frameHits, s_frameAnimCalls, frameEnemyCount, 0);
-        if (perf.frames >= PERF_LOG_INTERVAL)
-            perf.logAndReset();
     }
 
     void _SpawnEnemy(int id, app::AgentMode__Enum agentMode)
