@@ -66,9 +66,6 @@ namespace Enemy
         BoneLineCastCache fallback;
     };
     static std::unordered_map<app::EnemyAgent*, GameVisCache> g_gameVisCache;
-    static constexpr float BONE_MOVE_THRESHOLD_SQ = 0.01f * 0.01f; // 1cm
-    static constexpr float EYE_MOVE_THRESHOLD_SQ  = 0.01f * 0.01f; // 1cm
-
     struct EnemyInfoPool
     {
         std::vector<std::unique_ptr<EnemyInfo>> slots;
@@ -128,19 +125,11 @@ namespace Enemy
     static bool isBoneVisible_cached(BoneLineCastCache& cache, const app::Vector3& bonePos,
                                      const app::Vector3& eyePos)
     {
-        if (cache.valid)
+        if (cache.valid &&
+            bonePos.x == cache.lastBonePos.x && bonePos.y == cache.lastBonePos.y && bonePos.z == cache.lastBonePos.z &&
+            eyePos.x  == cache.lastPlayerEyePos.x && eyePos.y == cache.lastPlayerEyePos.y && eyePos.z == cache.lastPlayerEyePos.z)
         {
-            float bdx = bonePos.x - cache.lastBonePos.x,
-                  bdy = bonePos.y - cache.lastBonePos.y,
-                  bdz = bonePos.z - cache.lastBonePos.z;
-            float edx = eyePos.x - cache.lastPlayerEyePos.x,
-                  edy = eyePos.y - cache.lastPlayerEyePos.y,
-                  edz = eyePos.z - cache.lastPlayerEyePos.z;
-            if (bdx*bdx + bdy*bdy + bdz*bdz < BONE_MOVE_THRESHOLD_SQ &&
-                edx*edx + edy*edy + edz*edz < EYE_MOVE_THRESHOLD_SQ)
-            {
-                return cache.lastVisible;
-            }
+            return cache.lastVisible;
         }
 
         if (!g_maskResolved)
