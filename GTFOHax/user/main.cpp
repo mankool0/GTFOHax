@@ -9,6 +9,7 @@
 #include "helpers.h"
 #include "hooks.h"
 #include "hacks/esp.h"
+#include "hacks/enemy.h"
 #include "config/config.h"
 #include "i18n/i18n.h"
 
@@ -39,6 +40,7 @@ void Run()
     while (G::running)
         std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
+    Enemy::StopRefreshThread();
     Hooks::RemoveHooks();
 
     CloseHandle(G::runThread);

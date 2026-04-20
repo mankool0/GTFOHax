@@ -1343,7 +1343,6 @@ HRESULT __stdcall Hooks::hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval
         RenderWatermark();
         RenderESP();
 
-
         if (G::menuKey.isPressed())
             G::showMenu = !G::showMenu;
         if (G::unloadKey.isPressed())
@@ -1355,7 +1354,6 @@ HRESULT __stdcall Hooks::hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval
         if (G::showMenu)
             DrawMenu();
     }
-
 
     ImGui::EndFrame();
     ImGui::Render();
