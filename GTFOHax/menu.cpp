@@ -571,22 +571,18 @@ void RenderTabMisc()
     std::string locationLabel = std::string(I18N::T("misc_location")) + "##Watermark";
     ImGui::Combo(locationLabel.c_str(), &G::watermarkCorner, cornerItems, 4);
 
-    // Language selection
     ImGui::Separator();
+#if ENABLE_CHINESE
     int currentLang = static_cast<int>(I18N::GetCurrentLanguage());
-    
-    // Show language options based on Chinese font availability
     if (G::chineseFontAvailable) {
-        // Chinese font available, show all languages
         if (ImGui::Combo(I18N::T("misc_language"), &currentLang, I18N::LanguageNames, I18N::LanguageCount))
-        {
             I18N::SetLanguage(static_cast<I18N::Language>(currentLang));
-        }
     } else {
         const char* englishOnly[] = {"English"};
         ImGui::Combo(I18N::T("misc_language"), &currentLang, englishOnly, 1);
     }
     ImGui::Separator();
+#endif
 
     static int selectedIndex = 0;
     if (ImGui::BeginCombo("##SpawnEnemyCombo", Enemy::enemyNames[selectedIndex].c_str()))

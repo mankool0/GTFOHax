@@ -1276,13 +1276,12 @@ HRESULT __stdcall Hooks::hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval
             pBackBuffer->Release();
 
             ImGuiIO& io = ImGui::GetIO();
-            // Load font with Chinese support
             ImFontConfig config;
             config.FontLoaderFlags |= ImGuiFreeTypeBuilderFlags_ForceAutoHint;
-            
+
+#if ENABLE_CHINESE
             const ImWchar* chineseRanges = io.Fonts->GetGlyphRangesChineseFull();
 
-            // Try multiple Chinese fonts in order of preference
             const char* chineseFonts[] = {
                 "C:\\Windows\\Fonts\\msyh.ttc",    // Microsoft YaHei (Win7+)
                 "C:\\Windows\\Fonts\\simhei.ttf",  // SimHei (older systems)
@@ -1315,8 +1314,12 @@ HRESULT __stdcall Hooks::hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval
                     Fonts::GetRobotoFontDataTTFBase85(), 14, &config);
                 G::chineseFontAvailable = false;
             }
-            
-            // Initialize language after font loading based on availability
+#else
+            G::defaultFont = io.Fonts->AddFontDefault();
+            G::espFont = io.Fonts->AddFontFromMemoryCompressedBase85TTF(
+                Fonts::GetRobotoFontDataTTFBase85(), 14, &config);
+#endif
+
             I18N::InitializeAfterFontLoad(G::chineseFontAvailable);
 
             ImGui_ImplWin32_Init(G::windowHwnd);

@@ -2,17 +2,23 @@
 #include <string>
 #include <unordered_map>
 
+#ifndef ENABLE_CHINESE
+#define ENABLE_CHINESE 1
+#endif
+
 namespace I18N {
     enum class Language {
         English,
-        Chinese
+#if ENABLE_CHINESE
+        Chinese,
+#endif
     };
 
     // Initialize i18n system
     void Initialize();
     
     // Initialize after font loading, set language based on font availability
-    void InitializeAfterFontLoad(bool chineseFontAvailable);
+    void InitializeAfterFontLoad(bool chineseFontAvailable = false);
 
     // Get current language
     Language GetCurrentLanguage();
