@@ -163,5 +163,6 @@ namespace Aimbot
     // Get the current position of the target bone in real-time
     app::Vector3 GetCurrentTargetPosition();
 
+    void UpdateInput();
     void RunAimbot();
 }
