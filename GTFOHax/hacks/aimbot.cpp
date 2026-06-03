@@ -225,6 +225,11 @@ namespace Aimbot
         }
     }
 
+    void UpdateInput()
+    {
+        settings.toggleKey.handleToggle();
+    }
+
     void RunAimbot()
     {
         if (!settings.toggleKey.isToggled())

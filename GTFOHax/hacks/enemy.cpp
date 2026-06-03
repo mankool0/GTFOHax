@@ -64,6 +64,7 @@ namespace Enemy
     {
         BoneLineCastCache bones[64];
         BoneLineCastCache fallback;
+        BoneLineCastCache damageableBones[32];
     };
     static std::unordered_map<app::EnemyAgent*, GameVisCache> g_gameVisCache;
     struct EnemyInfoPool
@@ -439,6 +440,11 @@ namespace Enemy
                     enemyInfo->bones[idx].visible = visCache.bones[idx].lastVisible;
                     if (visCache.bones[idx].lastVisible) anyVisible = true;
                 }
+            }
+            for (int k = 0; k < enemyInfo->damageableBoneCount; k++)
+            {
+                isBoneVisible_cached(visCache.damageableBones[k], enemyInfo->damageableBones[k].position, eyePos);
+                enemyInfo->damageableBones[k].visible = visCache.damageableBones[k].lastVisible;
             }
             enemyInfo->visible = anyVisible;
         }

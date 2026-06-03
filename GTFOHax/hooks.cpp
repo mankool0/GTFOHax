@@ -1353,6 +1353,7 @@ HRESULT __stdcall Hooks::hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval
 
         Player::UpdateInput();
         ESP::UpdateInput();
+        Aimbot::UpdateInput();
 
         if (G::showMenu)
             DrawMenu();
