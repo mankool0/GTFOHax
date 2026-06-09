@@ -1237,6 +1237,20 @@ void Hooks::hkPreLitVolume_Update(app::PreLitVolume* __this, MethodInfo* method)
 
 LRESULT __stdcall WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+    const bool isTextInputMessage =
+        uMsg == WM_CHAR ||
+        uMsg == WM_SYSCHAR ||
+        uMsg == WM_DEADCHAR ||
+        uMsg == WM_SYSDEADCHAR ||
+        uMsg == WM_UNICHAR ||
+        uMsg == WM_IME_CHAR ||
+        uMsg == WM_IME_COMPOSITION ||
+        uMsg == WM_IME_STARTCOMPOSITION ||
+        uMsg == WM_IME_ENDCOMPOSITION;
+
+    if (!G::showMenu && isTextInputMessage)
+        return CallWindowProc(G::oWndProc, hWnd, uMsg, wParam, lParam);
+
     if (G::imguiMtx.try_lock())
     {
         ImGui_ImplWin32_WndProcHandler(hWnd, uMsg, wParam, lParam);
