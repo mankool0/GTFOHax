@@ -345,4 +345,6 @@ namespace ESP
 
     void Init();
     void UpdateInput();
+    void RequestWorldRescan();
+    void RescanWorldIfNeeded();
 }

@@ -878,6 +878,8 @@ void Hooks::hkGameStateManager_ChangeState(app::eGameStateName__Enum nextState, 
         ESP::worldBulkheadDCs.clear();
         G::worldBulkheadMtx.unlock();
     }
+
+    ESP::RequestWorldRescan();
 }
 
 void Hooks::hkApplication_Quit(int32_t exitCode, MethodInfo* method)

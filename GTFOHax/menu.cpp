@@ -1185,7 +1185,10 @@ void RenderESP()
     if (ESP::enemyESP.toggleKey.isToggled())
         RenderEnemyESP();
     if (ESP::worldESPToggleKey.isToggled())
+    {
+        ESP::RescanWorldIfNeeded();
         RenderWorldESP();
+    }
     if (Aimbot::settings.toggleKey.isToggled())
     {
         RenderAimbotESP();
