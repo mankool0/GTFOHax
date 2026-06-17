@@ -840,43 +840,54 @@ void Hooks::hkGameStateManager_ChangeState(app::eGameStateName__Enum nextState, 
 
     if (nextState < app::eGameStateName__Enum::Generating || nextState > app::eGameStateName__Enum::InLevel)
     {
+         // The camera is rebuilt on a reload, so always drop and re-acquire it
         G::mainCamera = NULL;
 
-        G::worldItemsMtx.lock();
-        ESP::worldItems.clear();
-        G::worldItemsMtx.unlock();
+        // But don't clear our level-object caches on a checkpoint reload (death goes
+        // InLevel -> ExpeditionFail -> InLevel; CaptureRecall is the drop-in path). A reload
+        // restores objects in place, so cached pointers stay valid and *_Setup never re-fires to
+        // refill us, so clearing here would leave ESP empty until a full restart. A real exit to
+        // the lobby still clears, since that transition is < Generating.
+        if (nextState != app::eGameStateName__Enum::CaptureRecall
+            && nextState != app::eGameStateName__Enum::ExpeditionFail)
+        {
 
-        G::worldArtifMtx.lock();
-        ESP::worldArtifacts.clear();
-        G::worldArtifMtx.unlock();
+            G::worldItemsMtx.lock();
+            ESP::worldItems.clear();
+            G::worldItemsMtx.unlock();
 
-        G::worldCarryMtx.lock();
-        ESP::worldCarryItems.clear();
-        G::worldCarryMtx.unlock();
-        
-        G::worldKeyMtx.lock();
-        ESP::worldKeys.clear();
-        G::worldKeyMtx.unlock();
-        
-        G::worldGenericMtx.lock();
-        ESP::worldGenerics.clear();
-        G::worldGenericMtx.unlock();
-        
-        G::worldResourcePackMtx.lock();
-        ESP::worldResourcePacks.clear();
-        G::worldResourcePackMtx.unlock();
-        
-        G::worldTerminalsMtx.lock();
-        ESP::worldTerminals.clear();
-        G::worldTerminalsMtx.unlock();
+            G::worldArtifMtx.lock();
+            ESP::worldArtifacts.clear();
+            G::worldArtifMtx.unlock();
 
-        G::worldHSUMtx.lock();
-        ESP::worldHSUItems.clear();
-        G::worldHSUMtx.unlock();
+            G::worldCarryMtx.lock();
+            ESP::worldCarryItems.clear();
+            G::worldCarryMtx.unlock();
 
-        G::worldBulkheadMtx.lock();
-        ESP::worldBulkheadDCs.clear();
-        G::worldBulkheadMtx.unlock();
+            G::worldKeyMtx.lock();
+            ESP::worldKeys.clear();
+            G::worldKeyMtx.unlock();
+
+            G::worldGenericMtx.lock();
+            ESP::worldGenerics.clear();
+            G::worldGenericMtx.unlock();
+
+            G::worldResourcePackMtx.lock();
+            ESP::worldResourcePacks.clear();
+            G::worldResourcePackMtx.unlock();
+
+            G::worldTerminalsMtx.lock();
+            ESP::worldTerminals.clear();
+            G::worldTerminalsMtx.unlock();
+
+            G::worldHSUMtx.lock();
+            ESP::worldHSUItems.clear();
+            G::worldHSUMtx.unlock();
+
+            G::worldBulkheadMtx.lock();
+            ESP::worldBulkheadDCs.clear();
+            G::worldBulkheadMtx.unlock();
+        }
     }
 }
 
@@ -928,6 +939,17 @@ void Hooks::hkCursor_set_visible(bool value, MethodInfo* method)
 {
     static auto fpOFunc = reinterpret_cast<void (*)(bool, MethodInfo*)>(hooks["Cursor_set_visible"]);
     fpOFunc(G::showMenu, method);
+}
+
+// Drop dead entries (destroyed objects, e.g. picked up or gone after a reload), refresh
+// distances on the survivors, then sort far-to-near.
+template <typename T>
+static void RefreshWorldVec(std::vector<T>& vec, std::mutex& mtx)
+{
+    std::lock_guard<std::mutex> lock(mtx);
+    std::erase_if(vec, [](const T& item) { return !item.alive(); });
+    for (T& item : vec) item.update();
+    std::sort(vec.begin(), vec.end(), std::greater<T>());
 }
 
 void Hooks::hkLocalPlayerAgent_Update(app::LocalPlayerAgent* __this, MethodInfo* method)
@@ -1034,50 +1056,15 @@ void Hooks::hkLocalPlayerAgent_Update(app::LocalPlayerAgent* __this, MethodInfo*
         fullBrightLight = nullptr;
     }
 
-    G::worldItemsMtx.lock();
-    for (ESP::WorldPickupItem& i : ESP::worldItems) i.update();
-    std::sort(ESP::worldItems.begin(), ESP::worldItems.end(), std::greater<ESP::WorldPickupItem>());
-    G::worldItemsMtx.unlock();
-
-    G::worldArtifMtx.lock();
-    for (ESP::WorldArtifactItem& i : ESP::worldArtifacts) i.update();
-    std::sort(ESP::worldArtifacts.begin(), ESP::worldArtifacts.end(), std::greater<ESP::WorldArtifactItem>());
-    G::worldArtifMtx.unlock();
-
-    G::worldCarryMtx.lock();
-    for (ESP::WorldCarryItem& i : ESP::worldCarryItems) i.update();
-    std::sort(ESP::worldCarryItems.begin(), ESP::worldCarryItems.end(), std::greater<ESP::WorldCarryItem>());
-    G::worldCarryMtx.unlock();
-    
-    G::worldKeyMtx.lock();
-    for (ESP::WorldKeyItem& i : ESP::worldKeys) i.update();
-    std::sort(ESP::worldKeys.begin(), ESP::worldKeys.end(), std::greater<ESP::WorldKeyItem>());
-    G::worldKeyMtx.unlock();
-    
-    G::worldGenericMtx.lock();
-    for (ESP::WorldGenericItem& i : ESP::worldGenerics) i.update();
-    std::sort(ESP::worldGenerics.begin(), ESP::worldGenerics.end(), std::greater<ESP::WorldGenericItem>());
-    G::worldGenericMtx.unlock();
-    
-    G::worldResourcePackMtx.lock();
-    for (ESP::WorldResourceItem& i : ESP::worldResourcePacks) i.update();
-    std::sort(ESP::worldResourcePacks.begin(), ESP::worldResourcePacks.end(), std::greater<ESP::WorldResourceItem>());
-    G::worldResourcePackMtx.unlock();
-    
-    G::worldTerminalsMtx.lock();
-    for (ESP::WorldTerminalItem& i : ESP::worldTerminals) i.update();
-    std::sort(ESP::worldTerminals.begin(), ESP::worldTerminals.end(), std::greater<ESP::WorldTerminalItem>());
-    G::worldTerminalsMtx.unlock();
-
-    G::worldHSUMtx.lock();
-    for (ESP::WorldHSUItem& i : ESP::worldHSUItems) i.update();
-    std::sort(ESP::worldHSUItems.begin(), ESP::worldHSUItems.end(), std::greater<ESP::WorldHSUItem>());
-    G::worldHSUMtx.unlock();
-
-    G::worldBulkheadMtx.lock();
-    for (ESP::WorldBulkheadDC& i : ESP::worldBulkheadDCs) i.update();
-    std::sort(ESP::worldBulkheadDCs.begin(), ESP::worldBulkheadDCs.end(), std::greater<ESP::WorldBulkheadDC>());
-    G::worldBulkheadMtx.unlock();
+    RefreshWorldVec(ESP::worldItems, G::worldItemsMtx);
+    RefreshWorldVec(ESP::worldArtifacts, G::worldArtifMtx);
+    RefreshWorldVec(ESP::worldCarryItems, G::worldCarryMtx);
+    RefreshWorldVec(ESP::worldKeys, G::worldKeyMtx);
+    RefreshWorldVec(ESP::worldGenerics, G::worldGenericMtx);
+    RefreshWorldVec(ESP::worldResourcePacks, G::worldResourcePackMtx);
+    RefreshWorldVec(ESP::worldTerminals, G::worldTerminalsMtx);
+    RefreshWorldVec(ESP::worldHSUItems, G::worldHSUMtx);
+    RefreshWorldVec(ESP::worldBulkheadDCs, G::worldBulkheadMtx);
 
     Aimbot::RunAimbot();
 }

@@ -56,6 +56,14 @@ namespace ESP
         ImVec4 outlineColor = ImVec4(0.0f, 0.0f, 0.0f, 1.0f);
     };
 
+    // True while the wrapped Unity object is still alive (op_Implicit also catches
+    // destroyed-but-not-yet-GC'd objects), checked before we dereference it in update().
+    template <typename T>
+    inline bool IsUnityObjectAlive(T* obj)
+    {
+        return obj && app::Object_1_op_Implicit(reinterpret_cast<app::Object_1*>(obj), NULL);
+    }
+
     struct WorldPickupItem
     {
         app::LG_PickupItem_Sync* pickupItem;
@@ -72,6 +80,11 @@ namespace ESP
         {
             this->state = app::LG_PickupItem_Sync_GetCurrentState(this->pickupItem, NULL);
             this->distance = app::Vector3_Distance(this->state.placement.position, G::localPlayer->fields.m_goodPosition, NULL);
+        }
+
+        bool alive() const
+        {
+            return IsUnityObjectAlive(pickupItem);
         }
 
         bool operator>(const WorldPickupItem& rhs) const
@@ -100,6 +113,11 @@ namespace ESP
             this->distance = app::Vector3_Distance(this->state.placement.position, G::localPlayer->fields.m_goodPosition, NULL);
         }
 
+        bool alive() const
+        {
+            return IsUnityObjectAlive(artifactItem) && artifactItem->fields.m_sync;
+        }
+
         bool operator>(const WorldArtifactItem& rhs) const
         {
             return this->distance > rhs.distance;
@@ -124,6 +142,11 @@ namespace ESP
             this->pickupItem = reinterpret_cast<app::LG_PickupItem_Sync*>(carryItem->fields.m_sync);
             this->state = app::LG_PickupItem_Sync_GetCurrentState(this->pickupItem, NULL);
             this->distance = app::Vector3_Distance(this->state.placement.position, G::localPlayer->fields.m_goodPosition, NULL);
+        }
+
+        bool alive() const
+        {
+            return IsUnityObjectAlive(carryItem) && carryItem->fields.m_sync;
         }
 
         bool operator>(const WorldCarryItem& rhs) const
@@ -152,6 +175,11 @@ namespace ESP
             this->distance = app::Vector3_Distance(this->state.placement.position, G::localPlayer->fields.m_goodPosition, NULL);
         }
 
+        bool alive() const
+        {
+            return IsUnityObjectAlive(keyItem) && keyItem->fields.m_sync;
+        }
+
         bool operator>(const WorldKeyItem& rhs) const
         {
             return this->distance > rhs.distance;
@@ -176,6 +204,11 @@ namespace ESP
             this->pickupItem = reinterpret_cast<app::LG_PickupItem_Sync*>(genericItem->fields.m_sync);
             this->state = app::LG_PickupItem_Sync_GetCurrentState(this->pickupItem, NULL);
             this->distance = app::Vector3_Distance(this->state.placement.position, G::localPlayer->fields.m_goodPosition, NULL);
+        }
+
+        bool alive() const
+        {
+            return IsUnityObjectAlive(genericItem) && genericItem->fields.m_sync;
         }
 
         bool operator>(const WorldGenericItem& rhs) const
@@ -204,6 +237,11 @@ namespace ESP
             this->distance = app::Vector3_Distance(this->state.placement.position, G::localPlayer->fields.m_goodPosition, NULL);
         }
 
+        bool alive() const
+        {
+            return IsUnityObjectAlive(resourceItem) && resourceItem->fields.m_sync;
+        }
+
         bool operator>(const WorldResourceItem& rhs) const
         {
             return this->distance > rhs.distance;
@@ -224,6 +262,11 @@ namespace ESP
         void update()
         {
             this->distance = app::Vector3_Distance(terminalItem->fields.m_position, G::localPlayer->fields.m_goodPosition, NULL);
+        }
+
+        bool alive() const
+        {
+            return IsUnityObjectAlive(terminalItem);
         }
 
         bool operator>(const WorldTerminalItem& rhs) const
@@ -251,6 +294,11 @@ namespace ESP
             this->distance = app::Vector3_Distance(this->position, G::localPlayer->fields.m_goodPosition, NULL);
         }
 
+        bool alive() const
+        {
+            return IsUnityObjectAlive(hsuItem) && hsuItem->fields.m_terminalItem;
+        }
+
         bool operator>(const WorldHSUItem& rhs) const
         {
             return this->distance > rhs.distance;
@@ -274,6 +322,11 @@ namespace ESP
             this->terminalItem = reinterpret_cast<app::LG_GenericTerminalItem*>(bulkheadDC->fields.m_terminalItem);
             this->position = app::LG_GenericTerminalItem_get_LocatorBeaconPosition(this->terminalItem, NULL);
             this->distance = app::Vector3_Distance(this->position, G::localPlayer->fields.m_goodPosition, NULL);
+        }
+
+        bool alive() const
+        {
+            return IsUnityObjectAlive(bulkheadDC) && bulkheadDC->fields.m_terminalItem;
         }
 
         bool operator>(const WorldBulkheadDC& rhs) const
