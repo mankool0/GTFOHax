@@ -1168,7 +1168,9 @@ void RenderESP()
     if (!G::localPlayer)
         return;
 
-    if (G::mainCamera == NULL)
+    // Re-acquire if null or destroyed - the camera is rebuilt on a checkpoint reload, and a
+    // stale non-null pointer would crash the render path.
+    if (G::mainCamera == NULL || !app::Object_1_op_Implicit(reinterpret_cast<app::Object_1*>(G::mainCamera), NULL))
     {
         G::mainCamera = app::Camera_get_main(NULL);
         return;
