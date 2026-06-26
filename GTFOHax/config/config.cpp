@@ -248,12 +248,17 @@ void Config::Save()
             {"InfiAmmoToggleKey", Player::infiAmmoToggleKey},
             {"GlueInstantToggleKey", Player::glueInstantToggleKey},
             {"InstaHackToggleKey", Player::instaHackToggleKey},
+            {"InstantScanToggleKey", Player::instantScanToggleKey},
+            {"SoloScanToggleKey", Player::soloScanToggleKey},
+            {"AutoScanToggleKey", Player::autoScanToggleKey},
             {"FullAutoToggleKey", Player::fullAutoToggleKey},
             {"NoRecoilToggleKey", Player::noRecoilToggleKey},
             {"NoSpreadToggleKey", Player::noSpreadToggleKey},
             {"NoShakeToggleKey", Player::noShakeToggleKey},
             {"NoFogToggleKey", Player::noFogToggleKey},
             {"FullBrightToggleKey", Player::fullBrightToggleKey},
+            {"SpeedModToggleKey", Player::speedModToggleKey},
+            {"SpeedMulti", Player::speedMulti},
             {"FullBrightRange", Player::fullBrightRange},
             {"FullBrightIntensity", Player::fullBrightIntensity},
             {"FullBrightAngle", Player::fullBrightAngle},
@@ -314,12 +319,17 @@ void Config::Load()
         JSON_GET("InfiAmmoToggleKey", Player::infiAmmoToggleKey);
         JSON_GET("GlueInstantToggleKey", Player::glueInstantToggleKey);
         JSON_GET("InstaHackToggleKey", Player::instaHackToggleKey);
+        JSON_GET("InstantScanToggleKey", Player::instantScanToggleKey);
+        JSON_GET("SoloScanToggleKey", Player::soloScanToggleKey);
+        JSON_GET("AutoScanToggleKey", Player::autoScanToggleKey);
         JSON_GET("FullAutoToggleKey", Player::fullAutoToggleKey);
         JSON_GET("NoRecoilToggleKey", Player::noRecoilToggleKey);
         JSON_GET("NoSpreadToggleKey", Player::noSpreadToggleKey);
         JSON_GET("NoShakeToggleKey", Player::noShakeToggleKey);
         JSON_GET("NoFogToggleKey", Player::noFogToggleKey);
         JSON_GET("FullBrightToggleKey", Player::fullBrightToggleKey);
+        JSON_GET("SpeedModToggleKey", Player::speedModToggleKey);
+        JSON_GET("SpeedMulti", Player::speedMulti);
         JSON_GET("FullBrightRange", Player::fullBrightRange);
         JSON_GET("FullBrightIntensity", Player::fullBrightIntensity);
         JSON_GET("FullBrightAngle", Player::fullBrightAngle);

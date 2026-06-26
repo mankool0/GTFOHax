@@ -93,6 +93,11 @@ void HookDetach(PVOID ppPointer, std::string functionName)
 
 static float s_pendingBulletDamage = 0.0f;
 
+// Solo/Auto Scan cache each scanner's original value so we can restore it when the toggle goes
+// off. File scope (not a function static) because hkGameStateManager_ChangeState also clears them.
+static std::map<app::CP_PlayerScanner*, int>   g_origScanReq;        // Solo Scan: original m_playerRequirement
+static std::map<app::CP_PlayerScanner*, float> g_origScanRadiusSqr;  // Auto Scan: original m_scanRadiusSqr
+
 #define HOOKATTACH(fun) void (*fp ## fun)(void); \
                         HookAttach(reinterpret_cast<PVOID>(app::fun), reinterpret_cast<PVOID>(&Hooks::hk ## fun), reinterpret_cast<PVOID*>(&fp ## fun), #fun)
 #define HOOKDETACH(fun) (HookDetach(reinterpret_cast<PVOID>(app::fun), #fun))
@@ -147,6 +152,9 @@ void Hooks::InitHooks()
     HOOKATTACH(GlueGun_Updatepressure);
     HOOKATTACH(GlueGun_UpdateRecharging);
     HOOKATTACH(HackingMinigame_TimingGrid_StartGame);
+    HOOKATTACH(CP_Bioscan_Core_Master_OnPlayerScanChangedCheckProgress);
+    HOOKATTACH(CP_Bioscan_Core_Update);
+    HOOKATTACH(PLOC_Base_GetHorizontalVelocityFromInput);
     HOOKATTACH(BulletWeaponArchetype_Update);
     HOOKATTACH(ArtifactPickup_Core_Setup);
     HOOKATTACH(CommodityPickup_Core_Setup);
@@ -714,6 +722,123 @@ void Hooks::hkHackingMinigame_TimingGrid_StartGame(app::HackingMinigame_TimingGr
         __this->fields.m_puzzleDone = true;
 }
 
+// Instant Scan: snap a bioscan's progress to 1.0 once its requirement is met, so it only
+// shortcuts scans you could already finish (Solo Scan relaxes the requirement separately).
+// Master-only: this is the host's per-frame progress callback.
+void Hooks::hkCP_Bioscan_Core_Master_OnPlayerScanChangedCheckProgress(app::CP_Bioscan_Core* __this, float scanProgress, app::List_1_Player_PlayerAgent_* playersInScan, int32_t inScanMax, app::Boolean__Array* reqObjsInScan, MethodInfo* method)
+{
+    if (Player::instantScanToggleKey.isToggled() && __this)
+    {
+        bool reqMet = false;
+        if (__this->fields.m_reqItemsEnabled)
+        {
+            // Objective scan: complete once a required item is in range (items still required).
+            if (reqObjsInScan)
+            {
+                for (int i = 0; i < reqObjsInScan->max_length; i++)
+                {
+                    if (reqObjsInScan->vector[i])
+                    {
+                        reqMet = true;
+                        break;
+                    }
+                }
+            }
+        }
+        else
+        {
+            // Player scan: mirror the host's player-count requirement. Solo Scan rewrites it to None.
+            int inScan = playersInScan ? playersInScan->fields._size : 0;
+            auto scanner = reinterpret_cast<app::CP_PlayerScanner*>(__this->fields.m_playerScanner);
+            int req = scanner ? (int)scanner->fields.m_playerRequirement : (int)app::PlayerRequirement__Enum::None;
+            if (req == (int)app::PlayerRequirement__Enum::All)
+                reqMet = inScan > 0 && inScan >= inScanMax;
+            // None / Solo: any occupant completes it. Solo really means "exactly one", but the
+            // >=1 relaxation is intentional - don't tighten to == 1.
+            else
+                reqMet = inScan >= 1;
+        }
+
+        if (reqMet)
+            scanProgress = 1.0f;
+    }
+
+    static auto fpOFunc = reinterpret_cast<void (*)(app::CP_Bioscan_Core*, float, app::List_1_Player_PlayerAgent_*, int32_t, app::Boolean__Array*, MethodInfo*)>(hooks["CP_Bioscan_Core_Master_OnPlayerScanChangedCheckProgress"]);
+    fpOFunc(__this, scanProgress, playersInScan, inScanMax, reqObjsInScan, method);
+}
+
+// Solo Scan: relax m_playerRequirement to None so a lone player can run a team scan.
+// Auto Scan: balloon the radius so the player always counts as inside. Each caches the real
+// value and restores it on toggle-off. Master-only.
+void Hooks::hkCP_Bioscan_Core_Update(app::CP_Bioscan_Core* __this, MethodInfo* method)
+{
+    if (__this && (*app::SNet__TypeInfo)->static_fields->_IsMaster_k__BackingField)
+    {
+        auto scanner = reinterpret_cast<app::CP_PlayerScanner*>(__this->fields.m_playerScanner);
+        if (scanner)
+        {
+            if (Player::soloScanToggleKey.isToggled())
+            {
+                if (g_origScanReq.find(scanner) == g_origScanReq.end())
+                    g_origScanReq[scanner] = (int)scanner->fields.m_playerRequirement;
+                scanner->fields.m_playerRequirement = app::PlayerRequirement__Enum::None;
+            }
+            else
+            {
+                auto it = g_origScanReq.find(scanner);
+                if (it != g_origScanReq.end())
+                {
+                    scanner->fields.m_playerRequirement = (app::PlayerRequirement__Enum)it->second;
+                    g_origScanReq.erase(it);
+                }
+            }
+
+            // Auto Scan: balloon the radius so the player always counts as inside. Player scans
+            // only - objective scans (m_reqItemsEnabled) gauge the item's distance; leave it alone.
+            constexpr float kAutoScanRadiusSqr = 1.0e20f; // dwarfs any in-level distance^2
+            bool applyAuto = Player::autoScanToggleKey.isToggled() && !__this->fields.m_reqItemsEnabled;
+            if (applyAuto)
+            {
+                if (g_origScanRadiusSqr.find(scanner) == g_origScanRadiusSqr.end())
+                    g_origScanRadiusSqr[scanner] = scanner->fields.m_scanRadiusSqr;
+                scanner->fields.m_scanRadiusSqr = kAutoScanRadiusSqr;
+            }
+            else
+            {
+                auto it = g_origScanRadiusSqr.find(scanner);
+                if (it != g_origScanRadiusSqr.end())
+                {
+                    scanner->fields.m_scanRadiusSqr = it->second;
+                    g_origScanRadiusSqr.erase(it);
+                }
+            }
+        }
+    }
+
+    static auto fpOFunc = reinterpret_cast<void (*)(app::CP_Bioscan_Core*, MethodInfo*)>(hooks["CP_Bioscan_Core_Update"]);
+    fpOFunc(__this, method);
+}
+
+// Speed modifier, local player only (gated on m_owner). GetHorizontalVelocityFromInput returns
+// velocity AFTER the game's speed clamp, so scaling it uncaps speed without touching the shared
+// PlayerDataBlock (would also speed up teammates/AI). Walk/run/crouch only; air/ladders differ.
+app::Vector3 Hooks::hkPLOC_Base_GetHorizontalVelocityFromInput(app::PLOC_Base* __this, float moveSpeed, MethodInfo* method)
+{
+    static auto fpOFunc = reinterpret_cast<app::Vector3(*)(app::PLOC_Base*, float, MethodInfo*)>(hooks["PLOC_Base_GetHorizontalVelocityFromInput"]);
+    app::Vector3 vel = fpOFunc(__this, moveSpeed, method);
+
+    if (Player::speedModToggleKey.isToggled() && __this && G::localPlayer
+        && __this->fields.m_owner == G::localPlayer)
+    {
+        float m = Player::speedMulti;
+        vel.x *= m;
+        vel.y *= m; // y is ~0 here, harmless
+        vel.z *= m;
+    }
+
+    return vel;
+}
+
 void Hooks::hkBulletWeaponArchetype_Update(app::BulletWeaponArchetype* __this, MethodInfo* method)
 {
     static auto fpOFunc = reinterpret_cast<void (*)(app::BulletWeaponArchetype*, MethodInfo*)>(hooks["BulletWeaponArchetype_Update"]);
@@ -840,7 +965,7 @@ void Hooks::hkGameStateManager_ChangeState(app::eGameStateName__Enum nextState, 
 
     if (nextState < app::eGameStateName__Enum::Generating || nextState > app::eGameStateName__Enum::InLevel)
     {
-         // The camera is rebuilt on a reload, so always drop and re-acquire it
+        // The camera is rebuilt on a reload, so always drop and re-acquire it
         G::mainCamera = NULL;
 
         // But don't clear our level-object caches on a checkpoint reload (death goes
@@ -851,6 +976,9 @@ void Hooks::hkGameStateManager_ChangeState(app::eGameStateName__Enum nextState, 
         if (nextState != app::eGameStateName__Enum::CaptureRecall
             && nextState != app::eGameStateName__Enum::ExpeditionFail)
         {
+            // No restore needed - a real exit destroys the scanner objects with their fields.
+            g_origScanReq.clear();
+            g_origScanRadiusSqr.clear();
 
             G::worldItemsMtx.lock();
             ESP::worldItems.clear();

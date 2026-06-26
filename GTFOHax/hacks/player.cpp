@@ -9,12 +9,18 @@ namespace Player
     KeyBindToggle infiAmmoToggleKey;
     KeyBindToggle glueInstantToggleKey;
     KeyBindToggle instaHackToggleKey;
+    KeyBindToggle instantScanToggleKey;
+    KeyBindToggle soloScanToggleKey;
+    KeyBindToggle autoScanToggleKey;
     KeyBindToggle fullAutoToggleKey;
     KeyBindToggle noRecoilToggleKey;
     KeyBindToggle noSpreadToggleKey;
     KeyBindToggle noShakeToggleKey;
     KeyBindToggle noFogToggleKey;
     KeyBindToggle fullBrightToggleKey;
+
+    KeyBindToggle speedModToggleKey;
+    float speedMulti = 1.5f;
 
     KeyBindToggle outgoingDamageToggleKey;
     float outgoingDamageMulti  = 2.0f;
@@ -47,12 +53,16 @@ namespace Player
         infiAmmoToggleKey.handleToggle();
         glueInstantToggleKey.handleToggle();
         instaHackToggleKey.handleToggle();
+        instantScanToggleKey.handleToggle();
+        soloScanToggleKey.handleToggle();
+        autoScanToggleKey.handleToggle();
         fullAutoToggleKey.handleToggle();
         noRecoilToggleKey.handleToggle();
         noSpreadToggleKey.handleToggle();
         noShakeToggleKey.handleToggle();
         noFogToggleKey.handleToggle();
         fullBrightToggleKey.handleToggle();
+        speedModToggleKey.handleToggle();
         forceWeakspotToggleKey.handleToggle();
         outgoingDamageToggleKey.handleToggle();
         localDamageToggleKey.handleToggle();
