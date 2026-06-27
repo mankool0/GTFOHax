@@ -103,6 +103,27 @@ void RenderTabPlayer()
     ImGui::Hotkey("", Player::instaHackToggleKey);
     ImGui::PopID();
 
+    ImGui::Checkbox(I18N::T("player_instant_scan"), &Player::instantScanToggleKey.toggledOn);
+    ImGui::SameLine();
+    ImGui::SetCursorPosX(160);
+    ImGui::PushID("InstantScanHotKey");
+    ImGui::Hotkey("", Player::instantScanToggleKey);
+    ImGui::PopID();
+
+    ImGui::Checkbox(I18N::T("player_solo_scan"), &Player::soloScanToggleKey.toggledOn);
+    ImGui::SameLine();
+    ImGui::SetCursorPosX(160);
+    ImGui::PushID("SoloScanHotKey");
+    ImGui::Hotkey("", Player::soloScanToggleKey);
+    ImGui::PopID();
+
+    ImGui::Checkbox(I18N::T("player_auto_scan"), &Player::autoScanToggleKey.toggledOn);
+    ImGui::SameLine();
+    ImGui::SetCursorPosX(160);
+    ImGui::PushID("AutoScanHotKey");
+    ImGui::Hotkey("", Player::autoScanToggleKey);
+    ImGui::PopID();
+
     ImGui::Checkbox(I18N::T("player_full_auto"), &Player::fullAutoToggleKey.toggledOn);
     ImGui::SameLine();
     ImGui::SetCursorPosX(160);
@@ -137,6 +158,20 @@ void RenderTabPlayer()
     ImGui::PushID("NoFogHotkey");
     ImGui::Hotkey("", Player::noFogToggleKey);
     ImGui::PopID();
+
+    ImGui::Checkbox(I18N::T("player_speed_modifier"), &Player::speedModToggleKey.toggledOn);
+    ImGui::SameLine();
+    ImGui::SetCursorPosX(160);
+    ImGui::PushID("SpeedModHotkey");
+    ImGui::Hotkey("", Player::speedModToggleKey);
+    ImGui::PopID();
+
+    if (Player::speedModToggleKey.toggledOn)
+    {
+        ImGui::Indent();
+        ImGui::SliderFloat(I18N::T("player_speed_multiplier"), &Player::speedMulti, 1.0f, 10.0f, "%.2fx");
+        ImGui::Unindent();
+    }
 
     ImGui::Checkbox(I18N::T("player_full_bright"), &Player::fullBrightToggleKey.toggledOn);
     ImGui::SameLine();

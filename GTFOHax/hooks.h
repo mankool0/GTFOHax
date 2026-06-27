@@ -18,6 +18,8 @@ namespace Hooks
     void hkGlueGun_Updatepressure(app::GlueGun* __this, app::PlayerInventoryBase_pSimpleItemSyncData* syncData, MethodInfo* method);
     void hkGlueGun_UpdateRecharging(app::GlueGun* __this, app::PlayerInventoryBase_pSimpleItemSyncData* syncData, MethodInfo* method);
     void hkHackingMinigame_TimingGrid_StartGame(app::HackingMinigame_TimingGrid* __this, MethodInfo* method);
+    void hkCP_Bioscan_Core_Master_OnPlayerScanChangedCheckProgress(app::CP_Bioscan_Core* __this, float scanProgress, app::List_1_Player_PlayerAgent_* playersInScan, int32_t inScanMax, app::Boolean__Array* reqObjsInScan, MethodInfo* method);
+    void hkCP_Bioscan_Core_Update(app::CP_Bioscan_Core* __this, MethodInfo* method);
     void hkBulletWeaponArchetype_Update(app::BulletWeaponArchetype* __this, MethodInfo* method);
     void hkItemDataBlock_OnPostSetup(app::ItemDataBlock* __this, MethodInfo* method);
     
@@ -57,5 +59,6 @@ namespace Hooks
 
     void hkPLOC_Downed_Enter(app::PLOC_Downed* __this, MethodInfo* method);
     void hkDam_PlayerDamageLocal_OnRevive(app::Dam_PlayerDamageLocal* __this, app::pSetHealthData data, MethodInfo* method);
+    app::Vector3 hkPLOC_Base_GetHorizontalVelocityFromInput(app::PLOC_Base* __this, float moveSpeed, MethodInfo* method);
 }
 

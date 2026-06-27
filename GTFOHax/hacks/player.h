@@ -9,12 +9,18 @@ namespace Player
     extern KeyBindToggle infiAmmoToggleKey;
     extern KeyBindToggle glueInstantToggleKey;
     extern KeyBindToggle instaHackToggleKey;
+    extern KeyBindToggle instantScanToggleKey;
+    extern KeyBindToggle soloScanToggleKey;
+    extern KeyBindToggle autoScanToggleKey;
     extern KeyBindToggle fullAutoToggleKey;
     extern KeyBindToggle noRecoilToggleKey;
     extern KeyBindToggle noSpreadToggleKey;
     extern KeyBindToggle noShakeToggleKey;
     extern KeyBindToggle noFogToggleKey;
     extern KeyBindToggle fullBrightToggleKey;
+
+    extern KeyBindToggle speedModToggleKey;
+    extern float speedMulti;
 
     extern KeyBindToggle outgoingDamageToggleKey;
     extern float outgoingDamageMulti;
