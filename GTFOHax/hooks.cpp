@@ -812,15 +812,19 @@ app::Vector3 Hooks::hkPLOC_Base_GetHorizontalVelocityFromInput(app::PLOC_Base* _
 void Hooks::hkBulletWeaponArchetype_Update(app::BulletWeaponArchetype* __this, MethodInfo* method)
 {
     static auto fpOFunc = reinterpret_cast<void (*)(app::BulletWeaponArchetype*, MethodInfo*)>(hooks["BulletWeaponArchetype_Update"]);
-    fpOFunc(__this, method);
 
-    if (!Player::fullAutoToggleKey.isToggled())
+    // Full Auto: m_triggerNeedsPress is the only field separating auto from semi/burst archetypes.
+    // Flip it false during Update so the game's own logic drives repeat fire, then restore it.
+    if (Player::fullAutoToggleKey.isToggled() && __this)
+    {
+        bool savedTriggerNeedsPress = __this->fields.m_triggerNeedsPress;
+        __this->fields.m_triggerNeedsPress = false;
+        fpOFunc(__this, method);
+        __this->fields.m_triggerNeedsPress = savedTriggerNeedsPress;
         return;
-    bool pressed = app::ItemEquippable_get_FireButton(reinterpret_cast<app::ItemEquippable*>(__this->fields.m_weapon), NULL);
-    if (pressed)
-        __this->fields.m_readyToFire = true;
-    else
-        __this->fields.m_readyToFire = false;
+    }
+
+    fpOFunc(__this, method);
 }
 
 void Hooks::hkArtifactPickup_Core_Setup(app::ArtifactPickup_Core* __this, app::ArtifactCategory__Enum category, MethodInfo* method)
