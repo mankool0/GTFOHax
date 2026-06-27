@@ -304,7 +304,7 @@ app::Vector2 Hooks::hkFPS_RecoilSystem_ApplyRecoil(app::FPS_RecoilSystem* __this
         static auto fpOFunc = reinterpret_cast<app::Vector2(*)(app::FPS_RecoilSystem*, bool, app::RecoilDataBlock*, MethodInfo*)>(hooks["FPS_RecoilSystem_ApplyRecoil"]);
         return fpOFunc(__this, resetSimilarity, recoilData, method);
     }
-    //std::cout << "ApplyRecoilHook" << std::endl;
+
     __this->fields.m_concussionShakeIntensity = 0.0f;
     __this->fields.m_concussionShakeFrequency = 0.0f;
     __this->fields.m_concussionShakeOffset = 0.0f;
@@ -344,36 +344,6 @@ app::Vector2 Hooks::hkFPS_RecoilSystem_ApplyRecoil(app::FPS_RecoilSystem* __this
 
     __this->fields.m_returnVector.x = 0.0f;
     __this->fields.m_returnVector.y = 0.0f;
-
-
-    recoilData->fields._spring_k__BackingField = 0.0f;
-    recoilData->fields._dampening_k__BackingField = 0.0f;
-    recoilData->fields._hipFireCrosshairSizeDefault_k__BackingField = 0.0f;
-    recoilData->fields._hipFireCrosshairRecoilPop_k__BackingField = 0.0f;
-    recoilData->fields._hipFireCrosshairSizeMax_k__BackingField = 0.0f;
-    recoilData->fields._horizontalScale_k__BackingField->fields._Min_k__BackingField = 0.0f;
-    recoilData->fields._horizontalScale_k__BackingField->fields._Max_k__BackingField = 0.0f;
-    recoilData->fields._verticalScale_k__BackingField->fields._Min_k__BackingField = 0.0f;
-    recoilData->fields._verticalScale_k__BackingField->fields._Max_k__BackingField = 0.0f;
-    recoilData->fields._recoilPosImpulse_k__BackingField.x = 0.0f;
-    recoilData->fields._recoilPosImpulse_k__BackingField.y = 0.0f;
-    recoilData->fields._recoilPosImpulse_k__BackingField.z = 0.0f;
-    recoilData->fields._recoilPosShiftWeight_k__BackingField = 0.0f;
-    recoilData->fields._recoilPosStiffness_k__BackingField = 0.0f;
-    recoilData->fields._recoilPosDamping_k__BackingField = 0.0f;
-    recoilData->fields._recoilPosImpulseWeight_k__BackingField = 0.0f;
-    recoilData->fields._recoilCameraPosWeight_k__BackingField = 0.0f;
-    recoilData->fields._recoilAimingWeight_k__BackingField = 0.0f;
-    recoilData->fields._recoilRotImpulse_k__BackingField.x = 0.0f;
-    recoilData->fields._recoilRotImpulse_k__BackingField.y = 0.0f;
-    recoilData->fields._recoilRotImpulse_k__BackingField.z = 0.0f;
-    recoilData->fields._recoilRotStiffness_k__BackingField = 0.0f;
-    recoilData->fields._recoilRotDamping_k__BackingField = 0.0f;
-    recoilData->fields._recoilRotImpulseWeight_k__BackingField = 0.0f;
-    recoilData->fields._recoilCameraRotWeight_k__BackingField = 0.0f;
-    recoilData->fields._concussionIntensity_k__BackingField = 0.0f;
-    recoilData->fields._concussionFrequency_k__BackingField = 0.0f;
-    recoilData->fields._concussionDuration_k__BackingField = 0.0f;
 
     return __this->fields.m_returnVector;
 }
